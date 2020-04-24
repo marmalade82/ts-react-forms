@@ -75,7 +75,7 @@ export const Form = {
                 const [valid, readonly, value, setValue] = useForm(config, props);
                 return (
                     <React.Fragment>
-                        {renderConfig(config, input, [valid, readonly, value, setValue], setValue, props)}
+                        {renderConfig(config, input, [valid, readonly, value, setValue], props)}
                     </React.Fragment>
                 );
             }

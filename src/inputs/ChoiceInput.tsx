@@ -1,24 +1,21 @@
-
-
 import React from "react";
 
-export interface Props {
+interface Props {
     value: string;
     onChange: (val: string) => void;
 }
 
-const TextInput: React.FunctionComponent<Props> = function (props: Props) {
-
+const ChoiceInput: React.FunctionComponent<Props> = function(props: Props) {
     return (
         <div>
-            <input type={"text"} value={props.value} 
+            <select
+                value={props.value}
                 onChange={(event) => {
                     event.preventDefault();
                     props.onChange(event.target.value);
                 }}
-            ></input>
+            ></select>
         </div>
     )
 }
-
-export default TextInput;
+export default ChoiceInput;
