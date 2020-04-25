@@ -1,13 +1,14 @@
 import React from "react";
 
 
-type Props<Value> = {
+export type Props<Value> = {
+    label: string;
     value: Value
     onChange: (val: Value) => void;
     valid?: ValidationResult
     readonly?: boolean
 }
-type InputComponent<Props> = (new (props: Props) => React.Component<Props>) | (React.FunctionComponent<Props>)
+export type InputComponent<Props> = (new (props: Props) => React.Component<Props>) | (React.FunctionComponent<Props>)
 
 export type FormInputs<
     TextProps extends Props<string>, 
@@ -28,7 +29,7 @@ type Input = {
     date: Date;
 }
 
-type ValidationResult = ["ok", string] | ["error", any]
+export type ValidationResult = ["ok", string] | ["error", any]
 
 type Validator<Data> =
     (data: Data) => Promise<ValidationResult>;
@@ -41,7 +42,7 @@ type Config<K extends keyof Input> = {
     name: string;
     label: string;
     type: K;
-    value: Input[K]
+    default: Input[K]
     props?: Record<string, any>; // any additional props to pass to the input
 }
 
@@ -69,10 +70,10 @@ export const Form = {
                       DateProps extends Props<Date>,
                     >(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps>) {
 
-        return function make(config: Config<any>[]) {
+        return function make(config: Config<any>[], startActive?: boolean) {
 
             return function Form(props: FormProps) {
-                const [valid, readonly, value, setValue] = useForm(config, props);
+                const [valid, readonly, value, setValue] = useForm(config, props, startActive);
                 return (
                     <React.Fragment>
                         {renderConfig(config, input, [valid, readonly, value, setValue], props)}
@@ -91,10 +92,13 @@ type HookReturn =
     , (name: string, value: any) => void
     ];
 
-function useForm(configs: Config<any>[], props: FormProps): HookReturn {
+function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean): HookReturn {
+    const [refreshing, setRefreshing] = React.useState(true);
+
+    const [active, setActive] = React.useState(startActive ? true: false);
 
     const data_: Record<string, any> = configs.reduce((acc, config) => {
-        acc[config.name] = config.value;
+        acc[config.name] = config.default;
         return acc;
     }, {} as any);
 
@@ -104,20 +108,24 @@ function useForm(configs: Config<any>[], props: FormProps): HookReturn {
 
     const [readonly, setReadonly] = React.useState({} as Record<string, boolean>);
 
-    configs.forEach((config) => {
-
-        runValidation(config.name);
-        runCriterion(config.name);
+    // eslint-disable-next-line
+    React.useEffect(() => {
+        if(refreshing) {
+            refresh();
+            setRefreshing(false);
+        }
     })
+
+    initializeHandle(props);
 
     // Possibly we should create the State first, and then set the values as done above
 
     const _valid = (name: string): ValidationResult => {
-        return valid[name] ? valid[name] : ["ok", ""]
+        return active && valid[name] !== undefined ? valid[name] : ["ok", ""]
     }
 
     const _readonly = (name: string): boolean => {
-        return readonly[name] ? readonly[name] : false;
+        return active && readonly[name] !== undefined ? readonly[name] : false;
     }
 
     const _value = (name: string) => {
@@ -127,35 +135,42 @@ function useForm(configs: Config<any>[], props: FormProps): HookReturn {
     const _setValue = (name: string, value: string) => {
         let newData = Object.assign({}, data);
         newData[name] = value;
+        console.log("NEW DATA: " + JSON.stringify(newData));
         setData(newData);
 
-        runValidation(name);
-        runCriterion(name);
+        // We run the logic asynchronously so that the validation runs on the new data, not the old
+        setTimeout(() => {
+            runValidation(name, newData);
+            runCriterion(name, newData);
+        })
     }
-
-    setHandle(props);
 
     return [_valid, _readonly, _value, _setValue];
 
-    function runValidation(name: string) {
+    function runValidation(name: string, data: any) {
+        console.log("running validation for " + name);
         const validator = props.validation[name]
         if(validator) {
             let newValid = Object.assign({}, valid);
-            validator(data[name]).then((result) => {
+            console.log("data: " + JSON.stringify(data));
+            validator(data).then((result) => {
+                console.log("result: " + result);
                 newValid[name] = result;
                 setValid(newValid);
             }).catch((reason) => {
                 newValid[name]= ["error", reason !== undefined && reason.toString ? reason.toString() : reason];
                 setValid(newValid);
             })
+        } else {
+            console.log ("no validator for " + name)
         }
     }
 
-    function runCriterion(name: string) {
+    function runCriterion(name: string, data: any) {
         const criterion = props.readonly[name];
         if(criterion) {
             let newReadonly = Object.assign({}, readonly);
-            criterion(data[name]).then((result) => {
+            criterion(data).then((result) => {
                 newReadonly[name] = result;
                 setReadonly(newReadonly);
             }).catch((_reason) => {
@@ -165,7 +180,13 @@ function useForm(configs: Config<any>[], props: FormProps): HookReturn {
         }
     }
 
-    function setHandle(props: FormProps) {
+    /**
+     * Configure the prop handle to have the appropriate functions for getting/setting the form data,
+     * activating/inactivating the validation and readonly logic
+     * 
+     * May also want to allow caller to read the valid/readonly states as well.
+     */
+    function initializeHandle(props: FormProps) {
         props.handle.getForm = () => {
             let d = Object.assign({}, data);
             return d;
@@ -185,7 +206,20 @@ function useForm(configs: Config<any>[], props: FormProps): HookReturn {
         }
 
         props.handle.refresh = () => {
-            refresh();
+            setRefreshing(true);
+        }
+    }
+
+    /**
+     * Rerun all the validations and readonly measures, if 
+     * the the logic is active.
+     */
+    function refresh() {
+        if(active) {
+            configs.forEach((config) => {
+                runValidation(config.name, data);
+                runCriterion(config.name, data);
+            })
         }
     }
 }
@@ -222,7 +256,8 @@ function renderConfig<TextProps extends Props<string>,
                     const choices = props.choices[config.name];
                     return (
                         <Component
-                            value={value}
+                            label={config.label}
+                            value={value(config.name)}
                             onChange={(val) => {
                                 setValue(config.name, val);
                             }}
@@ -255,6 +290,7 @@ function renderConfig<TextProps extends Props<string>,
 
         return (
             <Component
+                label={config.label}
                 value={value(config.name)}
                 onChange={(val: any) => {
                     setValue(config.name, val);

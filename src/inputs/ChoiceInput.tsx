@@ -1,6 +1,7 @@
 import React from "react";
 
 interface Props {
+    label: string;
     value: string;
     onChange: (val: string) => void;
 }
@@ -8,6 +9,7 @@ interface Props {
 const ChoiceInput: React.FunctionComponent<Props> = function(props: Props) {
     return (
         <div>
+            <label>{props.label}</label> 
             <select
                 value={props.value}
                 onChange={(event) => {
