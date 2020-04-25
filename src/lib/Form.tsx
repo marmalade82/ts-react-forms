@@ -1,10 +1,12 @@
 import React from "react";
 
+//TODO: User will want to extract validation messages, and debouncing
 
 export type Props<Value> = {
     label: string;
     value: Value
     onChange: (val: Value) => void;
+    accessibilityLabel: string;
     valid?: ValidationResult
     readonly?: boolean
 }
@@ -70,13 +72,13 @@ export const Form = {
                       DateProps extends Props<Date>,
                     >(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps>) {
 
-        return function make(config: Config<any>[], startActive?: boolean) {
+        return function make(config: Config<any>[], name: string, startActive?: boolean) {
 
             return function Form(props: FormProps) {
                 const [valid, readonly, value, setValue] = useForm(config, props, startActive);
                 return (
                     <React.Fragment>
-                        {renderConfig(config, input, [valid, readonly, value, setValue], props)}
+                        {renderConfig(config, input, [valid, readonly, value, setValue], props, name)}
                     </React.Fragment>
                 );
             }
@@ -93,20 +95,19 @@ type HookReturn =
     ];
 
 function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean): HookReturn {
-    const [refreshing, setRefreshing] = React.useState(true);
-
-    const [active, setActive] = React.useState(startActive ? true: false);
 
     const data_: Record<string, any> = configs.reduce((acc, config) => {
         acc[config.name] = config.default;
         return acc;
     }, {} as any);
 
+    const [refreshing, setRefreshing] = React.useState(true);
+    const [active, setActive] = React.useState(startActive ? true: false);
     const [data, setData] = React.useState(data_);
-
     const [valid, setValid ] = React.useState({} as Record<string, ValidationResult>);
-
     const [readonly, setReadonly] = React.useState({} as Record<string, boolean>);
+
+    // We will refresh on every update, if it has been requested.
 
     // eslint-disable-next-line
     React.useEffect(() => {
@@ -116,9 +117,8 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
         }
     })
 
+    // We always set the handle to have the latest functions for fetching and setting form data.
     initializeHandle(props);
-
-    // Possibly we should create the State first, and then set the values as done above
 
     const _valid = (name: string): ValidationResult => {
         return active && valid[name] !== undefined ? valid[name] : ["ok", ""]
@@ -135,7 +135,6 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
     const _setValue = (name: string, value: string) => {
         let newData = Object.assign({}, data);
         newData[name] = value;
-        console.log("NEW DATA: " + JSON.stringify(newData));
         setData(newData);
 
         // We run the logic asynchronously so that the validation runs on the new data, not the old
@@ -148,21 +147,16 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
     return [_valid, _readonly, _value, _setValue];
 
     function runValidation(name: string, data: any) {
-        console.log("running validation for " + name);
         const validator = props.validation[name]
         if(validator) {
             let newValid = Object.assign({}, valid);
-            console.log("data: " + JSON.stringify(data));
             validator(data).then((result) => {
-                console.log("result: " + result);
                 newValid[name] = result;
                 setValid(newValid);
             }).catch((reason) => {
                 newValid[name]= ["error", reason !== undefined && reason.toString ? reason.toString() : reason];
                 setValid(newValid);
             })
-        } else {
-            console.log ("no validator for " + name)
         }
     }
 
@@ -202,7 +196,7 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
 
         props.handle.setActive = (flag: boolean) => {
             setActive(flag);
-            refresh();
+            props.handle.refresh();
         }
 
         props.handle.refresh = () => {
@@ -230,14 +224,18 @@ function renderConfig<TextProps extends Props<string>,
                       DateProps extends Props<Date>>
                                 (configs: Config<any>[], inputs: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps>,
                                  hooks: HookReturn,
-                                 props: FormProps) {
-    const [valid, readonly, value, setValue] = hooks;
+                                 props: FormProps,
+                                 name: string) {
     return configs.map((config) => {
+        const doInstall = (component: any) => {
+            return installed(component, config, hooks, name);
+        }
+
         switch(config.type) {
             case "text": {
                 const Component = inputs.text;
                 if(Component) {
-                    return installed(Component, config, hooks)
+                    return doInstall(Component);
                 } 
 
                 throw notInstalled(config);
@@ -245,7 +243,7 @@ function renderConfig<TextProps extends Props<string>,
             case "number": {
                 const Component = inputs.text;
                 if(Component) {
-                    return installed(Component, config, hooks);
+                    return doInstall(Component);
                 }
 
                 throw notInstalled(config);
@@ -256,13 +254,7 @@ function renderConfig<TextProps extends Props<string>,
                     const choices = props.choices[config.name];
                     return (
                         <Component
-                            label={config.label}
-                            value={value(config.name)}
-                            onChange={(val) => {
-                                setValue(config.name, val);
-                            }}
-                            valid={valid(config.name)}
-                            readonly={readonly(config.name)}
+                            {...installProps(config, hooks, name)}
                             choices={choices ? choices : []}
                             {...config.props as any}
                         ></Component>
@@ -274,7 +266,7 @@ function renderConfig<TextProps extends Props<string>,
             case "date": {
                 const Component = inputs.date
                 if(Component) {
-                    return installed(Component, config, hooks);
+                    return doInstall(Component);
                 }
 
                 throw notInstalled(config);
@@ -285,21 +277,29 @@ function renderConfig<TextProps extends Props<string>,
         }
     })
 
-    function installed<K extends Props<any>>(Component: InputComponent<K>, config: Config<any>, hooks: HookReturn) {
-        const [valid, readonly, value, setValue] = hooks;
-
+    function installed<K extends Props<any>>(Component: InputComponent<K>, config: Config<any>, hooks: HookReturn, name: string) {
         return (
             <Component
-                label={config.label}
-                value={value(config.name)}
-                onChange={(val: any) => {
-                    setValue(config.name, val);
-                }}
-                valid={valid(config.name)}
-                readonly={readonly(config.name)}
+                {...installProps(config, hooks, name)}
                 {...config.props as any}
             ></Component>
         )
+    }
+
+    function installProps(config: Config<any>, hooks: HookReturn, name: string) {
+        const [valid, readonly, value, setValue] = hooks;
+
+        return {
+            label: config.label,
+            value: value(config.name),
+            onChange: (val: any) => {
+                setValue(config.name, val);
+            },
+            valid: valid(config.name),
+            readonly: readonly(config.name),
+            key: config.name,
+            accessibilityLabel: name + "-" + config.name
+        }
     }
 
     function notInstalled(config: Config<any>) {

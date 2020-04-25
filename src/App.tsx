@@ -12,14 +12,15 @@ const TestForm = makeForm([
   { name: "name", label: "Name"
   , type: "text"
   , default: "" }
-], true)
+], "test")
 
 
 function App() {
   const [readonly, setReadonly] = React.useState(false);
-  const [handle, _] = React.useState({} as any);
+  const [handle] = React.useState({} as any);
   return (
-    <div id={"app"} className="App">
+    <div id={"app"} className="App"
+    >
         <TestForm
           handle={handle}
           choices={{}}
@@ -32,8 +33,6 @@ function App() {
           }}
           validation={{ 
             name: async (data: any) => {
-              console.log("HI IM RUNNING");
-              console.log(data);
               if(data.name.length > 0) {
                 return ["ok", ""]
               }
@@ -44,8 +43,7 @@ function App() {
         <button
           onClick={() => {
             setReadonly(!readonly)
-            console.log(!readonly);
-            handle.refresh();
+            handle.setActive(!readonly);
           }}
         >Click</button>
     </div>

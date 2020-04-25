@@ -5,6 +5,7 @@ import React from "react";
 export interface TextProps {
     label: string;
     value: string;
+    accessibilityLabel: string;
     onChange: (val: string) => void;
     valid: ["ok", string] | ["error", string]
     readonly: boolean
