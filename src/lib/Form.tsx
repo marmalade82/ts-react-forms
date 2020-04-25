@@ -1,6 +1,7 @@
 import React from "react";
 
-//TODO: User will want to extract validation messages, and debouncing
+//TODO: User will want to extract validation messages, and DEBOUNCING
+// TODO: User will want to pass in styles and other props at runtime, not just at config time.
 
 export type Props<Value> = {
     label: string;
