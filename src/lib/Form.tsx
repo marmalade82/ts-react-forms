@@ -31,6 +31,27 @@ type Input = {
     date: Date;
 }
 
+/**
+ * Defines the default value for each input type
+ * These input types are intended to correspond to empty inputs.
+ */
+function getDefault(input: keyof Input) {
+    switch(input) {
+        case "text": {
+            return "";
+        }
+        case "date": {
+            return new Date(NaN);
+        }
+        case "number": {
+            return NaN;
+        }
+        case "choice": {
+            return "";
+        }
+    }
+}
+
 export type ValidationResult = ["ok", string] | ["error", any]
 
 type Validator<Data> =
@@ -44,7 +65,7 @@ type Config<K extends keyof Input> = {
     name: string;
     label: string;
     type: K;
-    default: Input[K]
+    default?: Input[K]
     props?: Record<string, any>; // any additional props to pass to the input
 }
 
@@ -72,7 +93,7 @@ export const Form = {
                       DateProps extends Props<Date>,
                     >(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps>) {
 
-        return function make(config: Config<any>[], name: string, startActive?: boolean) {
+        return function make(config: Config<keyof Input>[], name: string, startActive?: boolean) {
 
             return function Form(props: FormProps) {
                 const [valid, readonly, value, setValue] = useForm(config, props, startActive);
@@ -97,7 +118,7 @@ type HookReturn =
 function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean): HookReturn {
 
     const data_: Record<string, any> = configs.reduce((acc, config) => {
-        acc[config.name] = config.default;
+        acc[config.name] = config.default !== undefined ? config.default : getDefault(config.type);
         return acc;
     }, {} as any);
 
@@ -241,7 +262,7 @@ function renderConfig<TextProps extends Props<string>,
                 throw notInstalled(config);
             }
             case "number": {
-                const Component = inputs.text;
+                const Component = inputs.number;
                 if(Component) {
                     return doInstall(Component);
                 }

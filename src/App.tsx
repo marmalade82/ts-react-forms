@@ -2,18 +2,32 @@ import React from 'react';
 import './App.css';
 import Form from "./lib/Form";
 import TextInput from "./inputs/TextInput";
+import NumberInput from './inputs/NumberInput';
+import DateInput from './inputs/DateInput';
+import ChoiceInput from './inputs/ChoiceInput';
 
 
 const makeForm = Form.install({
   text: TextInput,
+  number: NumberInput,
+  date: DateInput,
+  choice: ChoiceInput,
 })
 
 const TestForm = makeForm([
   { name: "name", label: "Name"
   , type: "text"
-  , default: "" }
+  , default: "apple" },
+  { name: "age", label: "Age"
+  , default: 0
+  , type: "number" },
+  { name: "birthday", label: "Birthday"
+  , default: new Date()
+  , type: "date" },
+  { name: "plus-one", label: "Plus One?"
+  , default: "no"
+  , type: "choice"}
 ], "test")
-
 
 function App() {
   const [readonly, setReadonly] = React.useState(false);
@@ -23,7 +37,12 @@ function App() {
     >
         <TestForm
           handle={handle}
-          choices={{}}
+          choices={{
+            "plus-one": [
+              {label: "Yes", value: "yes", key: "yes"},
+              {label: "No", value: "no", key: "no"}
+            ]
+          }}
           readonly={{
             name: ((readonly) => {
                 return async (data: any) => {
