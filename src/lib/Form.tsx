@@ -1,6 +1,7 @@
 import React from "react";
 
 // TODO: User will want DEBOUNCING
+// TODO: User will want run-time props, like pipes (for example).
 
 export type Props<Value> = {
     label: string;
@@ -173,7 +174,6 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
             setRefreshing(true);
         }
     }, [validations])
-
 
 
     // eslint-disable-next-line
