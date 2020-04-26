@@ -27,7 +27,7 @@ const TestForm = makeForm([
   { name: "plus-one", label: "Plus One?"
   , default: "no"
   , type: "choice"}
-], "test")
+], "test", true)
 
 function App() {
   const [readonly, setReadonly] = React.useState(false);
@@ -44,11 +44,16 @@ function App() {
             ]
           }}
           readonly={{
-            name: ((readonly) => {
-                return async (data: any) => {
-                  return data.name.length > 5;
-              }
-            })(readonly)
+            name: async (data: any) => {
+                return data.name.length > 5;
+            },
+            birthday: [async (data: any) => {
+                if(data["plus-one"] === "yes") {
+                  return true
+                }
+                return false
+            }, ["plus-one"] ]
+
           }}
           validation={{ 
             name: async (data: any) => {
@@ -56,7 +61,25 @@ function App() {
                 return ["ok", ""]
               }
               return ["error", "oops"];
-            }
+            },
+            birthday: async (data: any) => {
+              if(data.birthday < new Date()) {
+                return ["error", "oops"]
+              }
+              return ["ok", ""]
+            },
+            age: async (data: any) => {
+              if(data.age > 100) {
+                return ["error", "oops"]
+              }
+              return ["ok", ""]
+            },
+            "plus-one": [async (data: any) => {
+              if(data.age < 10 && data["plus-one"] === "no") {
+                return ["error", "Minors must be accompanied by an adult"]
+              }
+              return ["ok", ""];
+            }, ["age"]]
           }}
         ></TestForm>
         <button

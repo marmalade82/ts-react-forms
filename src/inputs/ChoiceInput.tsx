@@ -11,6 +11,9 @@ interface Props {
     value: string;
     onChange: (val: string) => void;
     choices: LabelValue[];
+    accessibilityLabel: string;
+    valid: ["ok", string] | ["error", string]
+    readonly: boolean
 }
 
 const ChoiceInput: React.FunctionComponent<Props> = function(props: Props) {
@@ -26,6 +29,8 @@ const ChoiceInput: React.FunctionComponent<Props> = function(props: Props) {
             >
                 {renderChoices(props.choices)}
             </select>
+            <span>{props.valid[0] === "ok" ? "Valid" : "Invalid"}</span>
+            <span>{props.readonly ? "readonly" : "editable"}</span>
         </div>
     )
 

@@ -9,12 +9,13 @@ export interface TextProps {
     onChange: (val: string) => void;
     valid: ["ok", string] | ["error", string]
     readonly: boolean
+    classNames?: string[]
 }
 
 const TextInput: React.FunctionComponent<TextProps> = function (props: TextProps) {
 
     return (
-        <div>
+        <div className={props.classNames ? props.classNames.join(" ") : ""}>
             <label>{props.label}</label>
             <input type={"text"} value={props.value} 
                 onChange={(event) => {

@@ -78,8 +78,8 @@ type Config<K extends keyof Input> = {
  * @handle is used to provide functions so for the caller to directly manipulate the internals
  */
 type FormProps = {
-    validation: Record<string, Validator<any> | undefined>;
-    readonly: Record<string, Criterion<any> | undefined>;
+    validation: Record<string, [Validator<any>, string[]] | Validator<any> | undefined>;
+    readonly: Record<string, [Criterion<any>, string[]] | Criterion<any> | undefined>;
     choices: Record<string, any[] | undefined>;
     handle: any;
 }
@@ -124,15 +124,60 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
     }, {} as any);
 
     const [refreshing, setRefreshing] = React.useState(true);
-    const [active, setActive] = React.useState(startActive ? true: false);
+    const [active, setActive] = React.useState(startActive === undefined ? true: startActive);
     const [data, setData] = React.useState(data_);
     const [valid, setValid ] = React.useState({} as Record<string, ValidationResult>);
     const [readonly, setReadonly] = React.useState({} as Record<string, boolean>);
 
-    // We will refresh on every update, if it has been requested.
+    const {readonly: criteria, validation: validations} = props;
+    const [readonlyDeps, setReadonlyDeps] = React.useState({} as Record<string, string[]>)
+
+    React.useEffect(() => {
+        let readonlyDeps = {} as Record<string, string[]>
+        if(criteria !== undefined) {
+            Object.keys(criteria).forEach((name) => {
+                const criterion = criteria[name]
+                if(criterion instanceof Array) {
+                    const triggers = criterion[1]
+                    triggers.forEach((trigger) => {
+                        if(readonlyDeps[trigger] === undefined) {
+                            readonlyDeps[trigger] = [name];
+                        } else {
+                            readonlyDeps[trigger].push(name);
+                        }
+                    })
+                }
+            })
+            setReadonlyDeps(readonlyDeps);
+        }
+    }, [criteria])
+
+    const [validDeps, setValidDeps] = React.useState({} as Record<string, string[]>);
+    React.useEffect(() => {
+        let validDeps = {} as Record<string, string[]>;
+        if(validations !== undefined) {
+            Object.keys(validations).forEach((name) => {
+                const validator = validations[name];
+                if(validator instanceof Array) {
+                    const triggers = validator[1];
+                    triggers.forEach((trigger) => {
+                        if(validDeps[trigger] === undefined) {
+                            validDeps[trigger] = [name];
+                        } else {
+                            validDeps[trigger].push(name)
+                        }
+                    })
+                }
+            })
+            setValidDeps(validDeps);
+        }
+    }, [validations])
+
+
 
     // eslint-disable-next-line
     React.useEffect(() => {
+        // We will refresh on every update, if it has been requested.
         if(refreshing) {
             refresh();
             setRefreshing(false);
@@ -163,14 +208,19 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
         setTimeout(() => {
             runValidation(name, newData);
             runCriterion(name, newData);
+            runReadonlyDeps(name, newData);
+            runValidDeps(name, newData);
         })
     }
 
     return [_valid, _readonly, _value, _setValue];
 
     function runValidation(name: string, data: any) {
-        const validator = props.validation[name]
+        let validator = props.validation[name]
         if(validator) {
+            if(validator instanceof Array) {
+                validator = validator[0];
+            }
             let newValid = Object.assign({}, valid);
             validator(data).then((result) => {
                 newValid[name] = result;
@@ -183,8 +233,11 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
     }
 
     function runCriterion(name: string, data: any) {
-        const criterion = props.readonly[name];
+        let criterion = props.readonly[name];
         if(criterion) {
+            if(criterion instanceof Array) {
+                criterion = criterion[0];
+            }
             let newReadonly = Object.assign({}, readonly);
             criterion(data).then((result) => {
                 newReadonly[name] = result;
@@ -192,6 +245,24 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
             }).catch((_reason) => {
                 newReadonly[name] = false;
                 setReadonly(newReadonly);
+            })
+        }
+    }
+
+    function runReadonlyDeps(name: string, data: any) {
+        const deps = readonlyDeps[name];
+        if(deps !== undefined) {
+            deps.forEach((dep) => {
+                runCriterion(dep, data);
+            })
+        }
+    }
+
+    function runValidDeps(name: string, data: any) {
+        const deps = validDeps[name];
+        if(deps !== undefined) {
+            deps.forEach((dep) => {
+                runValidation(dep, data);
             })
         }
     }
