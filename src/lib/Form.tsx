@@ -1,7 +1,6 @@
 import React from "react";
 
 // TODO: User will want DEBOUNCING
-// TODO: User will want run-time props, like pipes (for example).
 
 export type Props<Value> = {
     label: string;
@@ -82,6 +81,7 @@ type FormProps = {
     readonly: Record<string, [Criterion<any>, string[]] | Criterion<any> | undefined>;
     choices: Record<string, any[] | undefined>;
     handle: any;
+    props?: Record<string, any>
 }
 
 export const Form = {
@@ -132,6 +132,16 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
     const {readonly: criteria, validation: validations} = props;
     const [readonlyDeps, setReadonlyDeps] = React.useState({} as Record<string, string[]>)
 
+    // eslint-disable-next-line
+    React.useEffect(() => {
+        // We will refresh on every update, if it has been requested.
+        if(refreshing) {
+            console.log("refreshing");
+            refresh();
+            setRefreshing(false);
+        }
+    })
+
     React.useEffect(() => {
         let readonlyDeps = {} as Record<string, string[]>
         if(criteria !== undefined) {
@@ -152,8 +162,10 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
             setRefreshing(true);
         }
     }, [criteria])
-
+    
     const [validDeps, setValidDeps] = React.useState({} as Record<string, string[]>);
+
+    
     React.useEffect(() => {
         let validDeps = {} as Record<string, string[]>;
         if(validations !== undefined) {
@@ -175,20 +187,11 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
         }
     }, [validations])
 
-
-    // eslint-disable-next-line
-    React.useEffect(() => {
-        // We will refresh on every update, if it has been requested.
-        if(refreshing) {
-            refresh();
-            setRefreshing(false);
-        }
-    })
-
     // We always set the handle to have the latest functions for fetching and setting form data.
     initializeHandle(props);
 
     const _valid = (name: string): ValidationResult => {
+        console.log("name: " + name + ", " + active + ", " + valid[name])
         return active && valid[name] !== undefined ? valid[name] : ["ok", ""]
     }
 
@@ -201,34 +204,40 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
     }
 
     const _setValue = (name: string, value: string) => {
-        let newData = Object.assign({}, data);
-        newData[name] = value;
-        setData(newData);
+        setData((oldData) => {
+            let newData = Object.assign({}, oldData);
+            newData[name] = value;
 
-        // We run the logic asynchronously so that the validation runs on the new data, not the old
-        setTimeout(() => {
             runValidation(name, newData);
             runCriterion(name, newData);
             runReadonlyDeps(name, newData);
             runValidDeps(name, newData);
+
+            return newData;
         })
     }
 
     return [_valid, _readonly, _value, _setValue];
 
     function runValidation(name: string, data: any) {
+        console.log("running validation for " + name)
         let validator = props.validation[name]
         if(validator) {
             if(validator instanceof Array) {
                 validator = validator[0];
             }
-            let newValid = Object.assign({}, valid);
             validator(data).then((result) => {
-                newValid[name] = result;
-                setValid(newValid);
+                setValid((oldValid) => {
+                    let newValid = Object.assign({}, oldValid);
+                    newValid[name] = result;
+                    return newValid;
+                })
             }).catch((reason) => {
-                newValid[name]= ["error", reason !== undefined && reason.toString ? reason.toString() : reason];
-                setValid(newValid);
+                setValid((oldValid) => {
+                    let newValid = Object.assign({}, oldValid);
+                    newValid[name]= ["error", reason !== undefined && reason.toString ? reason.toString() : reason];
+                    return newValid;
+                })
             })
         }
     }
@@ -239,13 +248,18 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
             if(criterion instanceof Array) {
                 criterion = criterion[0];
             }
-            let newReadonly = Object.assign({}, readonly);
             criterion(data).then((result) => {
-                newReadonly[name] = result;
-                setReadonly(newReadonly);
+                setReadonly((oldReadonly) => {
+                    let newReadonly = Object.assign({}, oldReadonly);
+                    newReadonly[name] = result;
+                    return newReadonly;
+                })
             }).catch((_reason) => {
-                newReadonly[name] = false;
-                setReadonly(newReadonly);
+                setReadonly((oldReadonly) => {
+                    let newReadonly = Object.assign({}, oldReadonly);
+                    newReadonly[name] = false;
+                    return newReadonly;
+                })
             })
         }
     }
@@ -338,8 +352,9 @@ function renderConfig<TextProps extends Props<string>,
                                  props: FormProps,
                                  name: string) {
     return configs.map((config) => {
+        let runtimeProps = props.props ? (props.props[config.name] ? props.props[config.name] : {}) : {};
         const doInstall = (component: any) => {
-            return installed(component, config, hooks, name);
+            return installed(component, config, hooks, name, runtimeProps);
         }
 
         switch(config.type) {
@@ -368,6 +383,7 @@ function renderConfig<TextProps extends Props<string>,
                             {...installProps(config, hooks, name)}
                             choices={choices ? choices : []}
                             {...config.props as any}
+                            {...runtimeProps}
                         ></Component>
                     )
                 }
@@ -388,11 +404,12 @@ function renderConfig<TextProps extends Props<string>,
         }
     })
 
-    function installed<K extends Props<any>>(Component: InputComponent<K>, config: Config<any>, hooks: HookReturn, name: string) {
+    function installed<K extends Props<any>>(Component: InputComponent<K>, config: Config<any>, hooks: HookReturn, formTitle: string, runtimeProps: any) {
         return (
             <Component
-                {...installProps(config, hooks, name)}
+                {...installProps(config, hooks, formTitle)}
                 {...config.props as any}
+                {...runtimeProps}
             ></Component>
         )
     }

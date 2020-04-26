@@ -17,7 +17,7 @@ const makeForm = Form.install({
 const TestForm = makeForm([
   { name: "name", label: "Name"
   , type: "text"
-  , default: "apple" },
+  , default: "" },
   { name: "age", label: "Age"
   , default: 0
   , type: "number" },
@@ -32,6 +32,11 @@ const TestForm = makeForm([
 function App() {
   const [readonly, setReadonly] = React.useState(false);
   const [handle] = React.useState({} as any);
+
+  const [validation, setValidation] = React.useState( initialValidation as any)
+
+
+
   return (
     <div id={"app"} className="App"
     >
@@ -55,37 +60,11 @@ function App() {
             }, ["plus-one"] ]
 
           }}
-          validation={{ 
-            name: async (data: any) => {
-              if(data.name.length > 0) {
-                return ["ok", ""]
-              }
-              return ["error", "oops"];
-            },
-            birthday: async (data: any) => {
-              if(data.birthday < new Date()) {
-                return ["error", "oops"]
-              }
-              return ["ok", ""]
-            },
-            age: async (data: any) => {
-              if(data.age > 100) {
-                return ["error", "oops"]
-              }
-              return ["ok", ""]
-            },
-            "plus-one": [async (data: any) => {
-              if(data.age < 10 && data["plus-one"] === "no") {
-                return ["error", "Minors must be accompanied by an adult"]
-              }
-              return ["ok", ""];
-            }, ["age"]]
-          }}
+          validation={validation}
         ></TestForm>
         <button
           onClick={() => {
-            setReadonly(!readonly)
-            handle.setActive(!readonly);
+            setValidation(secondValidation)
           }}
         >Click</button>
     </div>
@@ -93,3 +72,62 @@ function App() {
 }
 
 export default App;
+
+
+const initialValidation = {
+    name: async (data: any) => {
+      console.log("running name validation with " + JSON.stringify(data))
+      console.log("name length is " + data.name.length)
+      if(data.name.length > 0) {
+        console.log("returning ok")
+        return ["ok", ""]
+      }
+      console.log("returning error")
+      return ["error", "oops"];
+    },
+    birthday: async (data: any) => {
+      if(data.birthday < new Date()) {
+        return ["error", "oops"]
+      }
+      return ["ok", ""]
+    },
+    age: async (data: any) => {
+      if(data.age > 100) {
+        return ["error", "oops"]
+      }
+      return ["ok", ""]
+    },
+    "plus-one": [async (data: any) => {
+      if(data.age < 10 && data["plus-one"] === "no") {
+        return ["error", "Minors must be accompanied by an adult"]
+      }
+      return ["ok", ""];
+    }, ["age"]]
+}
+
+const secondValidation = {
+    name: async (data: any) => {
+      if(data.name.length > 0) {
+        return ["error", "oops"]
+      }
+      return ["ok", ""];
+    },
+    birthday: async (data: any) => {
+      if(data.birthday < new Date()) {
+        return ["error", "oops"]
+      }
+      return ["ok", ""]
+    },
+    age: async (data: any) => {
+      if(data.age > 100) {
+        return ["error", "oops"]
+      }
+      return ["ok", ""]
+    },
+    "plus-one": [async (data: any) => {
+      if(data.age < 10 && data["plus-one"] === "no") {
+        return ["error", "Minors must be accompanied by an adult"]
+      }
+      return ["ok", ""];
+    }, ["age"]]
+}
