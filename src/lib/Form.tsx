@@ -2,6 +2,13 @@ import React from "react";
 
 // TODO: User will want DEBOUNCING
 
+/**
+ * TODO: Tests for debouncing, changing any props on form causes validation refresh, changing values 
+ * TODO:    causes validation refresh, passing in choices are passed into ChoiceInput
+ * TODO: Props can be passed in at runtime and config time.
+ * TODO: Empty values are correct
+ */
+
 export type Props<Value> = {
     label: string;
     value: Value
@@ -84,6 +91,11 @@ type FormProps = {
     props?: Record<string, any>
 }
 
+type Opts = {
+    startActive?: boolean
+    name?: string
+}
+
 export const Form = {
     /**
      * Returns a function that, given the correct input, will generate the form.
@@ -94,7 +106,9 @@ export const Form = {
                       DateProps extends Props<Date>,
                     >(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps>) {
 
-        return function make(config: Config<keyof Input>[], name: string, startActive?: boolean) {
+        return function make(config: Config<keyof Input>[], opts?: Opts) {
+            const startActive: boolean = opts ? (opts.startActive === undefined ? true : opts.startActive) : true;
+            const name: string = opts ? (opts.name === undefined ? "form" : opts.name) : "form";
 
             return function Form(props: FormProps) {
                 const [valid, readonly, value, setValue] = useForm(config, props, startActive);
@@ -136,7 +150,6 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
     React.useEffect(() => {
         // We will refresh on every update, if it has been requested.
         if(refreshing) {
-            console.log("refreshing");
             refresh();
             setRefreshing(false);
         }
@@ -191,7 +204,6 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
     initializeHandle(props);
 
     const _valid = (name: string): ValidationResult => {
-        console.log("name: " + name + ", " + active + ", " + valid[name])
         return active && valid[name] !== undefined ? valid[name] : ["ok", ""]
     }
 
@@ -220,7 +232,6 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
     return [_valid, _readonly, _value, _setValue];
 
     function runValidation(name: string, data: any) {
-        console.log("running validation for " + name)
         let validator = props.validation[name]
         if(validator) {
             if(validator instanceof Array) {

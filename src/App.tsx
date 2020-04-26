@@ -27,7 +27,7 @@ const TestForm = makeForm([
   { name: "plus-one", label: "Plus One?"
   , default: "no"
   , type: "choice"}
-], "test", true)
+], { name: "test", startActive: true } )
 
 function App() {
   const [readonly, setReadonly] = React.useState(false);
@@ -76,13 +76,9 @@ export default App;
 
 const initialValidation = {
     name: async (data: any) => {
-      console.log("running name validation with " + JSON.stringify(data))
-      console.log("name length is " + data.name.length)
       if(data.name.length > 0) {
-        console.log("returning ok")
         return ["ok", ""]
       }
-      console.log("returning error")
       return ["error", "oops"];
     },
     birthday: async (data: any) => {
