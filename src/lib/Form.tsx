@@ -1,7 +1,6 @@
 import React from "react";
 
-//TODO: User will want to extract validation messages, and DEBOUNCING
-// TODO: User will want to pass in styles and other props at runtime, not just at config time.
+// TODO: User will want DEBOUNCING
 
 export type Props<Value> = {
     label: string;
@@ -149,6 +148,7 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
                 }
             })
             setReadonlyDeps(readonlyDeps);
+            setRefreshing(true);
         }
     }, [criteria])
 
@@ -170,6 +170,7 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
                 }
             })
             setValidDeps(validDeps);
+            setRefreshing(true);
         }
     }, [validations])
 
@@ -285,6 +286,23 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
                     _setValue(config.name, data[config.name]);
                 }
             })
+        }
+
+        props.handle.getErrors = () => {
+            return Object.values(valid).filter((result) => {
+                return result[0] === "error";
+            }).map((result) => {
+                return result[1];
+            })
+        }
+
+        props.handle.isFormValid = () => {
+            return Object.values(valid).reduce((acc, result) => {
+                if(acc) {
+                    return result[0] === "ok";
+                }
+                return false;
+            }, true)
         }
 
         props.handle.setActive = (flag: boolean) => {
