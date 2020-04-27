@@ -18,7 +18,7 @@ To use, install your inputs to generate a building function, and then pass the b
 
 To install an input, the input's props must satisfy the required interface. See the docs [here](doc.md) for more.
 
-```
+```typescript
 import Form from "ts-react-forms";
 import MyApplication from "src/application";
 
