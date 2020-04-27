@@ -112,7 +112,7 @@ In the simplest case, the `validation` prop expects an object that maps a string
 ```typescript
 const validation = {
     first_name: async function required(data: any) {
-        if(data["first_name].length === 0) {
+        if(data["first_name"].length === 0) {
             return ["error", "Name is required"];
         }
 

@@ -20,8 +20,8 @@ const NumberInput: React.FunctionComponent<Props> = function(props: Props) {
                     props.onChange(event.target.valueAsNumber);
                 }}
             ></input>
-            <span>{props.valid[0] === "ok" ? "Valid" : "Invalid"}</span>
-            <span>{props.readonly ? "readonly" : "editable"}</span>
+            <span className={"valid"}>{props.valid[0] === "ok" ? "Valid" : "Invalid"}</span>
+            <span className={"readonly"}>{props.readonly ? "Readonly" : "Editable"}</span>
         </div>
     )
 }

@@ -335,6 +335,10 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
             props.handle.refresh();
         }
 
+        props.handle.getActive = () => {
+            return active;
+        }
+
         props.handle.refresh = () => {
             setRefreshing(true);
         }

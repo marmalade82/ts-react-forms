@@ -30,43 +30,44 @@ const TestForm = makeForm([
 ], { name: "test", startActive: true } )
 
 function App() {
-  const [readonly, setReadonly] = React.useState(false);
   const [handle] = React.useState({} as any);
 
-  const [validation, setValidation] = React.useState( initialValidation as any)
+  const [validation] = React.useState( initialValidation as any)
 
 
 
   return (
     <div id={"app"} className="App"
     >
-        <TestForm
-          handle={handle}
-          choices={{
-            "plus-one": [
-              {label: "Yes", value: "yes", key: "yes"},
-              {label: "No", value: "no", key: "no"}
-            ]
-          }}
-          readonly={{
-            name: async (data: any) => {
-                return data.name.length > 5;
-            },
-            birthday: [async (data: any) => {
-                if(data["plus-one"] === "yes") {
-                  return true
-                }
-                return false
-            }, ["plus-one"] ]
+      <div className="container">
+          <TestForm
+            handle={handle}
+            choices={{
+              "plus-one": [
+                {label: "Yes", value: "yes", key: "yes"},
+                {label: "No", value: "no", key: "no"}
+              ]
+            }}
+            readonly={{
+              name: async (data: any) => {
+                  return data.name.length > 5;
+              },
+              birthday: [async (data: any) => {
+                  if(data["plus-one"] === "yes") {
+                    return true
+                  }
+                  return false
+              }, ["plus-one"] ]
 
-          }}
-          validation={validation}
-        ></TestForm>
-        <button
-          onClick={() => {
-            setValidation(secondValidation)
-          }}
-        >Click</button>
+            }}
+            validation={validation}
+          ></TestForm>
+          <button
+            onClick={() => {
+              handle.setActive(!handle.getActive());
+            }}
+          >Click to enable/disable logic</button>
+      </div>
     </div>
   );
 }
@@ -80,33 +81,6 @@ const initialValidation = {
         return ["ok", ""]
       }
       return ["error", "oops"];
-    },
-    birthday: async (data: any) => {
-      if(data.birthday < new Date()) {
-        return ["error", "oops"]
-      }
-      return ["ok", ""]
-    },
-    age: async (data: any) => {
-      if(data.age > 100) {
-        return ["error", "oops"]
-      }
-      return ["ok", ""]
-    },
-    "plus-one": [async (data: any) => {
-      if(data.age < 10 && data["plus-one"] === "no") {
-        return ["error", "Minors must be accompanied by an adult"]
-      }
-      return ["ok", ""];
-    }, ["age"]]
-}
-
-const secondValidation = {
-    name: async (data: any) => {
-      if(data.name.length > 0) {
-        return ["error", "oops"]
-      }
-      return ["ok", ""];
     },
     birthday: async (data: any) => {
       if(data.birthday < new Date()) {

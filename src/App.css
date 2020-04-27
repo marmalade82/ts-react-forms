@@ -1,5 +1,7 @@
 .App {
   text-align: center;
+  width: 600px;
+  margin: auto;
 }
 
 .App-logo {
@@ -35,4 +37,43 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.valid {
+  margin: 5px;
+}
+
+.readonly {
+  margin: 5px;
+}
+
+input {
+  margin: 5px;
+  width: 11em;
+}
+
+select { 
+  margin: 5px;
+  width: 11.4em;
+  padding: 2px;
+}
+
+button {
+  margin: 10px;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+label { 
+  width: 7em;
+  text-align: left;
+  display: inline-block;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+
 }
