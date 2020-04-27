@@ -134,7 +134,7 @@ const validation = {
     }, ["age"]]
 }
 
-/* Since the validation depends on the age, we can pass in "age" as a dependency. Now, when someone modifies the "age" field,
+/* Since the validation depends on the age, we can pass in "age" as a trigger. Now, when someone modifies the "age" field,
 *  the "first_name" validation will be rerun.
 */
 ```
@@ -150,7 +150,7 @@ const readonly = {
     }, ["first_name"]]
 }
 
-/* The age field will be readonly until the "first_name" field is no longer empty.
+/* The age field will be readonly whenever the "first_name" field is empty.
 */
 ```
 

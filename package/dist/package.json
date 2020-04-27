@@ -1,0 +1,14 @@
+{
+  "name": "@marmalade82/ts-react-forms",
+  "version": "0.1.2",
+  "description": "Form interface for React applications",
+  "main": "ts-react-forms.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Howard Chen",
+  "license": "ISC",
+  "dependencies": {
+    "react": "^16.13.1"
+  }
+}

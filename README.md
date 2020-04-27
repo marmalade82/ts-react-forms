@@ -67,7 +67,7 @@ function Party = function(props) {
                         }
 
                         return false;
-                    }, "name"]
+                    }, ["name"] ]
                 }}
 
                 validation = {{
