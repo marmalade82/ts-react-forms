@@ -1,8 +1,9 @@
 {
   "name": "@marmalade82/ts-react-forms",
   "version": "0.1.2",
+  "private": false,
   "description": "Form interface for React applications",
-  "main": "ts-react-forms.ts",
+  "main": "Form.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
