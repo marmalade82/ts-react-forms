@@ -2,7 +2,7 @@
 
 import React from "react";
 
-export interface TextProps {
+export interface MyTextProps {
     label: string;
     value: string;
     accessibilityLabel: string;
@@ -12,7 +12,7 @@ export interface TextProps {
     classNames?: string[]
 }
 
-const TextInput: React.FunctionComponent<TextProps> = function (props: TextProps) {
+const TextInput: React.FunctionComponent<MyTextProps> = function (props: MyTextProps) {
 
     return (
         <div className={props.classNames ? props.classNames.join(" ") : ""}>

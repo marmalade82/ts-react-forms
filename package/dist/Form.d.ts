@@ -16,17 +16,24 @@ export declare type Props<Value> = {
 export declare type InputComponent<Props> = (new (props: Props) => React.Component<Props>) | (React.FunctionComponent<Props>);
 export declare type FormInputs<TextProps extends Props<string>, NumberProps extends Props<number>, ChoiceProps extends Props<string>, DateProps extends Props<Date>> = {
     text?: InputComponent<TextProps>;
+    multi_text?: InputComponent<TextProps>;
     number?: InputComponent<NumberProps>;
     choice?: InputComponent<ChoiceProps & {
         choices: any;
     }>;
     date?: InputComponent<DateProps>;
+    time?: InputComponent<DateProps>;
+};
+export declare type OtherFormInputs = {
+    [others: string]: any;
 };
 declare type Input = {
     text: string;
     number: number;
     choice: string;
     date: Date;
+    multi_text: string;
+    time: Date;
 };
 export declare type ValidationResult = ["ok", string] | ["error", any];
 declare type Validator<Data> = (data: Data) => Promise<ValidationResult>;
@@ -36,6 +43,13 @@ declare type Config<K extends keyof Input> = {
     label: string;
     type: K;
     default?: Input[K];
+    props?: Record<string, any>;
+};
+declare type UserConfig = {
+    name: string;
+    label: string;
+    type: any;
+    default: any;
     props?: Record<string, any>;
 };
 /**
@@ -60,6 +74,6 @@ export declare const Form: {
     /**
      * Returns a function that, given the correct input, will generate the form.
      */
-    install: <TextProps extends Props<string>, NumberProps extends Props<number>, ChoiceProps extends Props<string>, DateProps extends Props<Date>>(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps>) => (config: Config<"number" | "text" | "choice" | "date">[], opts?: Opts | undefined) => (props: FormProps) => JSX.Element;
+    install: <TextProps extends Props<string>, NumberProps extends Props<number>, ChoiceProps extends Props<string>, DateProps extends Props<Date>>(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps> & OtherFormInputs) => (config: (UserConfig | Config<"number" | "text" | "choice" | "date" | "multi_text" | "time">)[], opts?: Opts | undefined) => (props: FormProps) => JSX.Element;
 };
 export default Form;

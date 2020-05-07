@@ -23,12 +23,18 @@ export type FormInputs<
     TextProps extends Props<string>, 
     NumberProps extends Props<number>,
     ChoiceProps extends Props<string>,
-    DateProps extends Props<Date>
+    DateProps extends Props<Date>,
 > = {
     text?: InputComponent<TextProps>
+    multi_text?: InputComponent<TextProps>
     number?: InputComponent<NumberProps>
     choice?: InputComponent<ChoiceProps & {choices: any}>
     date?: InputComponent<DateProps>
+    time?: InputComponent<DateProps>
+}
+
+export type OtherFormInputs = {
+    [others: string]: any
 }
 
 type Input = {
@@ -36,6 +42,8 @@ type Input = {
     number: number;
     choice: string;
     date: Date;
+    multi_text: string;
+    time: Date;
 }
 
 /**
@@ -47,6 +55,9 @@ function getDefault(input: keyof Input) {
         case "text": {
             return "";
         }
+        case "multi_text": {
+            return "";
+        }
         case "date": {
             return new Date(NaN);
         }
@@ -55,6 +66,9 @@ function getDefault(input: keyof Input) {
         }
         case "choice": {
             return "";
+        }
+        case "time": {
+            return new Date(NaN);
         }
     }
 }
@@ -68,11 +82,19 @@ type Criterion<Data> =
     (data: Data) => Promise<boolean>;
 
 
-type Config<K extends keyof Input> = {
-    name: string;
+type Config<K extends keyof Input, Data, L extends keyof Data> = {
+    name: L;
     label: string;
     type: K;
-    default?: Input[K]
+    default?: Input[K] & Data[L]
+    props?: Record<string, any>; // any additional props to pass to the input
+}
+
+type UserConfig<Data, L extends keyof Data> = {
+    name: L;
+    label: string;
+    type: any;
+    default: Data[L];
     props?: Record<string, any>; // any additional props to pass to the input
 }
 
@@ -83,9 +105,9 @@ type Config<K extends keyof Input> = {
  * 
  * @handle is used to provide functions so for the caller to directly manipulate the internals
  */
-type FormProps = {
-    validation: Record<string, [Validator<any>, string[]] | Validator<any> | undefined>;
-    readonly: Record<string, [Criterion<any>, string[]] | Criterion<any> | undefined>;
+type FormProps<Data> = {
+    validation: Record<string, [Validator<Data>, string[]] | Validator<Data> | undefined>;
+    readonly: Record<string, [Criterion<Data>, string[]] | Criterion<Data> | undefined>;
     choices: Record<string, any[] | undefined>;
     handle: any;
     props?: Record<string, any>
@@ -104,13 +126,13 @@ export const Form = {
                       NumberProps extends Props<number>,
                       ChoiceProps extends Props<string>,
                       DateProps extends Props<Date>,
-                    >(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps>) {
+                      > (input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps> & OtherFormInputs) {
 
-        return function make(config: Config<keyof Input>[], opts?: Opts) {
+        return function make<Data>(config: (Config<keyof Input, Data, keyof Data> | UserConfig<Data, keyof Data>)[], opts?: Opts) {
             const startActive: boolean = opts ? (opts.startActive === undefined ? true : opts.startActive) : true;
             const name: string = opts ? (opts.name === undefined ? "form" : opts.name) : "form";
 
-            return function Form(props: FormProps) {
+            return function Form(props: FormProps<Data>) {
                 const [valid, readonly, value, setValue] = useForm(config, props, startActive);
                 return (
                     <React.Fragment>
@@ -130,9 +152,9 @@ type HookReturn =
     , (name: string, value: any) => void
     ];
 
-function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean): HookReturn {
+function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserConfig<Data, keyof Data>)[], props: FormProps<Data>, startActive?: boolean): HookReturn {
 
-    const data_: Record<string, any> = configs.reduce((acc, config) => {
+    const data_: Record<string, any> = (configs).reduce((acc, config) => {
         acc[config.name] = config.default !== undefined ? config.default : getDefault(config.type);
         return acc;
     }, {} as any);
@@ -299,16 +321,16 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
      * 
      * May also want to allow caller to read the valid/readonly states as well.
      */
-    function initializeHandle(props: FormProps) {
+    function initializeHandle(props: FormProps<Data>) {
         props.handle.getForm = () => {
             let d = Object.assign({}, data);
             return d;
         }
 
         props.handle.setForm = (data: any) => {
-            configs.forEach((config) => {
+            configs.forEach((config: any) => {
                 if(data[config.name] !== undefined) {
-                    _setValue(config.name, data[config.name]);
+                    _setValue(config.name as string, data[config.name]);
                 }
             })
         }
@@ -350,9 +372,9 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
      */
     function refresh() {
         if(active) {
-            configs.forEach((config) => {
-                runValidation(config.name, data);
-                runCriterion(config.name, data);
+            configs.forEach((config: any) => {
+                runValidation(config.name as string, data);
+                runCriterion(config.name as string, data);
             })
         }
     }
@@ -361,13 +383,15 @@ function useForm(configs: Config<any>[], props: FormProps, startActive?: boolean
 function renderConfig<TextProps extends Props<string>, 
                       NumberProps extends Props<number>,
                       ChoiceProps extends Props<string>,
-                      DateProps extends Props<Date>>
-                                (configs: Config<any>[], inputs: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps>,
+                      DateProps extends Props<Date>, 
+                      Data
+                      >
+                                (configs: (Config<keyof Input, Data, keyof Data> | UserConfig<Data, keyof Data>)[], inputs: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps>,
                                  hooks: HookReturn,
-                                 props: FormProps,
+                                 props: FormProps<Data>,
                                  name: string) {
     return configs.map((config) => {
-        let runtimeProps = props.props ? (props.props[config.name] ? props.props[config.name] : {}) : {};
+        let runtimeProps = props.props ? (props.props[config.name as string] ? props.props[config.name as string] : {}) : {};
         const doInstall = (component: any) => {
             return installed(component, config, hooks, name, runtimeProps);
         }
@@ -378,6 +402,14 @@ function renderConfig<TextProps extends Props<string>,
                 if(Component) {
                     return doInstall(Component);
                 } 
+
+                throw notInstalled(config);
+            }
+            case "multi_text": {
+                const Component = inputs.multi_text;
+                if(Component) {
+                    return doInstall(Component);
+                }
 
                 throw notInstalled(config);
             }
@@ -392,7 +424,7 @@ function renderConfig<TextProps extends Props<string>,
             case "choice": {
                 const Component = inputs.choice
                 if(Component) {
-                    const choices = props.choices[config.name];
+                    const choices = props.choices[config.name as string];
                     return (
                         <Component
                             {...installProps(config, hooks, name)}
@@ -413,13 +445,28 @@ function renderConfig<TextProps extends Props<string>,
 
                 throw notInstalled(config);
             }
+            case "time": {
+                const Component = inputs.time
+                if(Component) {
+                    return doInstall(Component);
+                }
+
+                throw notInstalled(config);
+            }
             default: {
-                throw new Error(`Unknown form input called ${config.name} with type: ${config.type}`)
+                /**We allow the user to specify other components other than our defaults */
+                if( typeof config.type === "string") {
+                    const Component = (inputs as any)[config.type] as InputComponent<Props<any>>;
+                    if(Component) {
+                        return doInstall(Component);
+                    }
+                }
+                throw new Error(`Unknown form input called ${config.name} with type: ${config.type.toString()}`)
             }
         }
     })
 
-    function installed<K extends Props<any>>(Component: InputComponent<K>, config: Config<any>, hooks: HookReturn, formTitle: string, runtimeProps: any) {
+    function installed<K extends Props<any>, Data>(Component: InputComponent<K>, config: Config<any, Data, keyof Data>, hooks: HookReturn, formTitle: string, runtimeProps: any) {
         return (
             <Component
                 {...installProps(config, hooks, formTitle)}
@@ -429,23 +476,23 @@ function renderConfig<TextProps extends Props<string>,
         )
     }
 
-    function installProps(config: Config<any>, hooks: HookReturn, name: string) {
+    function installProps<Data>(config: Config<any, Data, keyof Data>, hooks: HookReturn, name: string) {
         const [valid, readonly, value, setValue] = hooks;
 
         return {
             label: config.label,
-            value: value(config.name),
+            value: value(config.name as string),
             onChange: (val: any) => {
-                setValue(config.name, val);
+                setValue(config.name as string, val);
             },
-            valid: valid(config.name),
-            readonly: readonly(config.name),
+            valid: valid(config.name as string),
+            readonly: readonly(config.name as string),
             key: config.name,
             accessibilityLabel: name + "-" + config.name
         }
     }
 
-    function notInstalled(config: Config<any>) {
+    function notInstalled<Data>(config: Config<any, Data, keyof Data>) {
         return new Error(`Could not make form input called ${config.name} with type: ${config.type}: No input was installed`);
     }
 }

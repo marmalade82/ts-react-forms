@@ -24,6 +24,9 @@ function getDefault(input) {
         case "text": {
             return "";
         }
+        case "multi_text": {
+            return "";
+        }
         case "date": {
             return new Date(NaN);
         }
@@ -32,6 +35,9 @@ function getDefault(input) {
         }
         case "choice": {
             return "";
+        }
+        case "time": {
+            return new Date(NaN);
         }
     }
 }
@@ -232,6 +238,9 @@ function useForm(configs, props, startActive) {
             setActive(flag);
             props.handle.refresh();
         };
+        props.handle.getActive = function () {
+            return active;
+        };
         props.handle.refresh = function () {
             setRefreshing(true);
         };
@@ -263,6 +272,13 @@ function renderConfig(configs, inputs, hooks, props, name) {
                 }
                 throw notInstalled(config);
             }
+            case "multi_text": {
+                var Component = inputs.multi_text;
+                if (Component) {
+                    return doInstall(Component);
+                }
+                throw notInstalled(config);
+            }
             case "number": {
                 var Component = inputs.number;
                 if (Component) {
@@ -285,8 +301,22 @@ function renderConfig(configs, inputs, hooks, props, name) {
                 }
                 throw notInstalled(config);
             }
+            case "time": {
+                var Component = inputs.time;
+                if (Component) {
+                    return doInstall(Component);
+                }
+                throw notInstalled(config);
+            }
             default: {
-                throw new Error("Unknown form input called " + config.name + " with type: " + config.type);
+                /**We allow the user to specify other components other than our defaults */
+                if (typeof config.type === "string") {
+                    var Component = inputs[config.type];
+                    if (Component) {
+                        return doInstall(Component);
+                    }
+                }
+                throw new Error("Unknown form input called " + config.name + " with type: " + config.type.toString());
             }
         }
     });

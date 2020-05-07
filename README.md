@@ -11,6 +11,7 @@ The library is built with TypeScript and React. The example project is built in 
 - Declarative form creation by passing in an array of configuration objects that describe each field in the form
 - Adjust logic, styles, and field dependencies at runtime
 - Manipulate the form data and query for invalid fields at runtime
+- Turn on and turn off logic at run-time
 
 ## Example Usage
 

@@ -5,6 +5,7 @@ import TextInput from "./inputs/TextInput";
 import NumberInput from './inputs/NumberInput';
 import DateInput from './inputs/DateInput';
 import ChoiceInput from './inputs/ChoiceInput';
+import LeftRightInput from "./inputs/LeftRightInput";
 
 
 const makeForm = Form.install({
@@ -12,9 +13,19 @@ const makeForm = Form.install({
   number: NumberInput,
   date: DateInput,
   choice: ChoiceInput,
+  left_right: LeftRightInput,
 })
 
-const TestForm = makeForm([
+type Data = {
+  name: string,
+  age: number,
+  birthday: Date,
+  ["plus-one"]: string,
+  ["left?"]: string,
+
+}
+
+const TestForm = makeForm<Data>([
   { name: "name", label: "Name"
   , type: "text"
   , default: "" },
@@ -26,7 +37,11 @@ const TestForm = makeForm([
   , type: "date" },
   { name: "plus-one", label: "Plus One?"
   , default: "no"
-  , type: "choice"}
+  , type: "choice"},
+  { name: "left?", label: "Left?"
+  , default: "left"
+  , type: "left_right"
+  }
 ], { name: "test", startActive: true } )
 
 function App() {
@@ -49,10 +64,10 @@ function App() {
               ]
             }}
             readonly={{
-              name: async (data: any) => {
+              name: async (data) => {
                   return data.name.length > 5;
               },
-              birthday: [async (data: any) => {
+              birthday: [async (data) => {
                   if(data["plus-one"] === "yes") {
                     return true
                   }
