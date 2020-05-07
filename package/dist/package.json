@@ -1,11 +1,12 @@
 {
   "name": "@marmalade82/ts-react-forms",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "private": false,
   "description": "Form interface for React applications",
   "main": "Form.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "publish": "npm publish --access public"
   },
   "author": "Howard Chen",
   "license": "ISC",

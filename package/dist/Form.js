@@ -58,7 +58,7 @@ exports.Form = {
 };
 exports.default = exports.Form;
 function useForm(configs, props, startActive) {
-    var data_ = configs.reduce(function (acc, config) {
+    var data_ = (configs).reduce(function (acc, config) {
         acc[config.name] = config.default !== undefined ? config.default : getDefault(config.type);
         return acc;
     }, {});

@@ -38,18 +38,18 @@ declare type Input = {
 export declare type ValidationResult = ["ok", string] | ["error", any];
 declare type Validator<Data> = (data: Data) => Promise<ValidationResult>;
 declare type Criterion<Data> = (data: Data) => Promise<boolean>;
-declare type Config<K extends keyof Input> = {
-    name: string;
+declare type Config<K extends keyof Input, Data, L extends keyof Data> = {
+    name: L;
     label: string;
     type: K;
-    default?: Input[K];
+    default?: Input[K] & Data[L];
     props?: Record<string, any>;
 };
-declare type UserConfig = {
-    name: string;
+declare type UserConfig<Data, L extends keyof Data> = {
+    name: L;
     label: string;
     type: any;
-    default: any;
+    default: Data[L];
     props?: Record<string, any>;
 };
 /**
@@ -59,9 +59,9 @@ declare type UserConfig = {
  *
  * @handle is used to provide functions so for the caller to directly manipulate the internals
  */
-declare type FormProps = {
-    validation: Record<string, [Validator<any>, string[]] | Validator<any> | undefined>;
-    readonly: Record<string, [Criterion<any>, string[]] | Criterion<any> | undefined>;
+declare type FormProps<Data> = {
+    validation: Record<string, [Validator<Data>, string[]] | Validator<Data> | undefined>;
+    readonly: Record<string, [Criterion<Data>, string[]] | Criterion<Data> | undefined>;
     choices: Record<string, any[] | undefined>;
     handle: any;
     props?: Record<string, any>;
@@ -74,6 +74,6 @@ export declare const Form: {
     /**
      * Returns a function that, given the correct input, will generate the form.
      */
-    install: <TextProps extends Props<string>, NumberProps extends Props<number>, ChoiceProps extends Props<string>, DateProps extends Props<Date>>(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps> & OtherFormInputs) => (config: (UserConfig | Config<"number" | "text" | "choice" | "date" | "multi_text" | "time">)[], opts?: Opts | undefined) => (props: FormProps) => JSX.Element;
+    install: <TextProps extends Props<string>, NumberProps extends Props<number>, ChoiceProps extends Props<string>, DateProps extends Props<Date>>(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps> & OtherFormInputs) => <Data>(config: (Config<"number" | "text" | "choice" | "date" | "multi_text" | "time", Data, keyof Data> | UserConfig<Data, keyof Data>)[], opts?: Opts | undefined) => (props: FormProps<Data>) => JSX.Element;
 };
 export default Form;

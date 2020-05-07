@@ -1,6 +1,6 @@
 # TS React Forms #
 
-This library provides a strict but simple interface for creating React Forms from existing React components, and injecting validation and read-only logic into the forms.
+Naive experimental library for generating a React form from a JS schema array.
 
 The library is built with TypeScript and React. The example project is built in HTML, CSS, and TypeScript (React)
 
@@ -11,6 +11,7 @@ The library is built with TypeScript and React. The example project is built in 
 - Declarative form creation by passing in an array of configuration objects that describe each field in the form
 - Adjust logic, styles, and field dependencies at runtime
 - Manipulate the form data and query for invalid fields at runtime
+- Turn on and turn off logic at run-time
 
 ## Example Usage
 
