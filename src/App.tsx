@@ -22,7 +22,7 @@ type Data = {
   birthday: Date,
   ["plus-one"]: string,
   ["left?"]: string,
-
+  option: string,
 }
 
 const TestForm = makeForm<Data>([
@@ -41,6 +41,9 @@ const TestForm = makeForm<Data>([
   { name: "left?", label: "Left?"
   , default: "left"
   , type: "left_right"
+  },
+  { name: "option", label: "Option"
+  , type: "text"
   }
 ], { name: "test", startActive: true } )
 
@@ -49,6 +52,7 @@ function App() {
 
   const [validation] = React.useState( initialValidation as any)
 
+  const [hide, setHide] = React.useState(false);
 
 
   return (
@@ -76,7 +80,17 @@ function App() {
 
             }}
             validation={validation}
+            hide={{
+              option: async (data) => {
+                return hide;
+              }
+            }}
           ></TestForm>
+          <button
+            onClick={() => {
+              setHide((hide) => !hide);
+            }}
+          >Click to hide/show the option field</button>
           <button
             onClick={() => {
               handle.setActive(!handle.getActive());
@@ -114,5 +128,5 @@ const initialValidation = {
         return ["error", "Minors must be accompanied by an adult"]
       }
       return ["ok", ""];
-    }, ["age"]]
+    }, ["age"]],
 }
