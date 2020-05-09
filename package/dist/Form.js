@@ -50,8 +50,8 @@ exports.Form = {
             var startActive = opts ? (opts.startActive === undefined ? true : opts.startActive) : true;
             var name = opts ? (opts.name === undefined ? "form" : opts.name) : "form";
             return function Form(props) {
-                var _a = useForm(config, props, startActive), valid = _a[0], readonly = _a[1], value = _a[2], setValue = _a[3];
-                return (react_1.default.createElement(react_1.default.Fragment, null, renderConfig(config, input, [valid, readonly, value, setValue], props, name)));
+                var hooks = useForm(config, props, startActive);
+                return (react_1.default.createElement(react_1.default.Fragment, null, renderConfig(config, input, hooks, props, name)));
             };
         };
     }
@@ -67,8 +67,7 @@ function useForm(configs, props, startActive) {
     var _c = react_1.default.useState(data_), data = _c[0], setData = _c[1];
     var _d = react_1.default.useState({}), valid = _d[0], setValid = _d[1];
     var _e = react_1.default.useState({}), readonly = _e[0], setReadonly = _e[1];
-    var criteria = props.readonly, validations = props.validation;
-    var _f = react_1.default.useState({}), readonlyDeps = _f[0], setReadonlyDeps = _f[1];
+    var _f = react_1.default.useState({}), hide = _f[0], setHide = _f[1];
     // eslint-disable-next-line
     react_1.default.useEffect(function () {
         // We will refresh on every update, if it has been requested.
@@ -77,6 +76,9 @@ function useForm(configs, props, startActive) {
             setRefreshing(false);
         }
     });
+    var criteria = props.readonly, validations = props.validation, hidden = props.hide;
+    // Set up a field to re-check its readonly state if another field is changed.
+    var _g = react_1.default.useState({}), readonlyDeps = _g[0], setReadonlyDeps = _g[1];
     react_1.default.useEffect(function () {
         var readonlyDeps = {};
         if (criteria !== undefined) {
@@ -98,7 +100,8 @@ function useForm(configs, props, startActive) {
             setRefreshing(true);
         }
     }, [criteria]);
-    var _g = react_1.default.useState({}), validDeps = _g[0], setValidDeps = _g[1];
+    //Set up a field to re-check its validity if another field is changed
+    var _h = react_1.default.useState({}), validDeps = _h[0], setValidDeps = _h[1];
     react_1.default.useEffect(function () {
         var validDeps = {};
         if (validations !== undefined) {
@@ -120,6 +123,29 @@ function useForm(configs, props, startActive) {
             setRefreshing(true);
         }
     }, [validations]);
+    // Set up a field to re-check its visibility if another field is changed
+    var _j = react_1.default.useState({}), hideDeps = _j[0], setHideDeps = _j[1];
+    react_1.default.useEffect(function () {
+        var hideDeps = {};
+        if (hidden !== undefined) {
+            Object.keys(hidden).forEach(function (name) {
+                var hider = hidden[name];
+                if (hider instanceof Array) {
+                    var triggers = hider[1];
+                    triggers.forEach(function (trigger) {
+                        if (hideDeps[trigger] === undefined) {
+                            hideDeps[trigger] = [name];
+                        }
+                        else {
+                            hideDeps[trigger].push(name);
+                        }
+                    });
+                }
+            });
+            setHideDeps(hideDeps);
+            setRefreshing(true);
+        }
+    }, [hidden]);
     // We always set the handle to have the latest functions for fetching and setting form data.
     initializeHandle(props);
     var _valid = function (name) {
@@ -127,6 +153,9 @@ function useForm(configs, props, startActive) {
     };
     var _readonly = function (name) {
         return active && readonly[name] !== undefined ? readonly[name] : false;
+    };
+    var _hide = function (name) {
+        return active && hide[name] !== undefined ? hide[name] : false;
     };
     var _value = function (name) {
         return data[name];
@@ -137,12 +166,20 @@ function useForm(configs, props, startActive) {
             newData[name] = value;
             runValidation(name, newData);
             runCriterion(name, newData);
+            runHideCriterion(name, newData);
             runReadonlyDeps(name, newData);
             runValidDeps(name, newData);
+            runHideDeps(name, newData);
             return newData;
         });
     };
-    return [_valid, _readonly, _value, _setValue];
+    return {
+        valid: _valid,
+        readonly: _readonly,
+        hide: _hide,
+        value: _value,
+        setValue: _setValue
+    };
     function runValidation(name, data) {
         var validator = props.validation[name];
         if (validator) {
@@ -185,6 +222,27 @@ function useForm(configs, props, startActive) {
             });
         }
     }
+    function runHideCriterion(name, data) {
+        var criterion = props.hide[name];
+        if (criterion) {
+            if (criterion instanceof Array) {
+                criterion = criterion[0];
+            }
+            criterion(data).then(function (result) {
+                setHide(function (oldHide) {
+                    var newHide = Object.assign({}, oldHide);
+                    newHide[name] = result;
+                    return newHide;
+                });
+            }).catch(function (_reason) {
+                setHide(function (oldHide) {
+                    var newHide = Object.assign({}, oldHide);
+                    newHide[name] = false;
+                    return newHide;
+                });
+            });
+        }
+    }
     function runReadonlyDeps(name, data) {
         var deps = readonlyDeps[name];
         if (deps !== undefined) {
@@ -198,6 +256,14 @@ function useForm(configs, props, startActive) {
         if (deps !== undefined) {
             deps.forEach(function (dep) {
                 runValidation(dep, data);
+            });
+        }
+    }
+    function runHideDeps(name, data) {
+        var deps = hideDeps[name];
+        if (deps !== undefined) {
+            deps.forEach(function (dep) {
+                runHideCriterion(dep, data);
             });
         }
     }
@@ -254,6 +320,7 @@ function useForm(configs, props, startActive) {
             configs.forEach(function (config) {
                 runValidation(config.name, data);
                 runCriterion(config.name, data);
+                runHideCriterion(config.name, data);
             });
         }
     }
@@ -264,6 +331,10 @@ function renderConfig(configs, inputs, hooks, props, name) {
         var doInstall = function (component) {
             return installed(component, config, hooks, name, runtimeProps);
         };
+        var hide = hooks.hide;
+        if (hide(config.name)) {
+            return null;
+        }
         switch (config.type) {
             case "text": {
                 var Component = inputs.text;
@@ -324,7 +395,7 @@ function renderConfig(configs, inputs, hooks, props, name) {
         return (react_1.default.createElement(Component, __assign({}, installProps(config, hooks, formTitle), config.props, runtimeProps)));
     }
     function installProps(config, hooks, name) {
-        var valid = hooks[0], readonly = hooks[1], value = hooks[2], setValue = hooks[3];
+        var valid = hooks.valid, readonly = hooks.readonly, value = hooks.value, setValue = hooks.setValue;
         return {
             label: config.label,
             value: value(config.name),
