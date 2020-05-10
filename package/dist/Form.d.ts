@@ -36,9 +36,9 @@ declare type Input = {
     time: Date;
 };
 export declare type ValidationResult = ["ok", string] | ["error", any];
-declare type Validator<Data> = (data: Data) => Promise<ValidationResult>;
-declare type Criterion<Data> = (data: Data) => Promise<boolean>;
-declare type HideCriterion<Data> = (data: Data) => Promise<boolean>;
+export declare type CheckValid<Data> = (data: Data) => Promise<ValidationResult>;
+export declare type CheckReadonly<Data> = (data: Data) => Promise<boolean>;
+export declare type CheckHide<Data> = (data: Data) => Promise<boolean>;
 declare type Config<K extends keyof Input, Data, L extends keyof Data> = {
     name: L;
     label: string;
@@ -61,9 +61,9 @@ declare type UserConfig<Data, L extends keyof Data> = {
  * @handle is used to provide functions so for the caller to directly manipulate the internals
  */
 declare type FormProps<Data> = {
-    validation: Record<string, [Validator<Data>, string[]] | Validator<Data>>;
-    readonly: Record<string, [Criterion<Data>, string[]] | Criterion<Data>>;
-    hide: Record<string, [HideCriterion<Data>, string[]] | HideCriterion<Data>>;
+    validation: Record<string, [CheckValid<Data>, string[]] | CheckValid<Data>>;
+    readonly: Record<string, [CheckReadonly<Data>, string[]] | CheckReadonly<Data>>;
+    hide: Record<string, [CheckHide<Data>, string[]] | CheckHide<Data>>;
     choices: Record<string, any[] | undefined>;
     handle: any;
     props?: Record<string, any>;

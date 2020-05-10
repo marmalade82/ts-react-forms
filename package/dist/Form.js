@@ -165,8 +165,8 @@ function useForm(configs, props, startActive) {
             var newData = Object.assign({}, oldData);
             newData[name] = value;
             runValidation(name, newData);
-            runCriterion(name, newData);
-            runHideCriterion(name, newData);
+            runReadonly(name, newData);
+            runHide(name, newData);
             runReadonlyDeps(name, newData);
             runValidDeps(name, newData);
             runHideDeps(name, newData);
@@ -181,8 +181,9 @@ function useForm(configs, props, startActive) {
         setValue: _setValue
     };
     function runValidation(name, data) {
+        // Only run validation logic if field is visible.
         var validator = props.validation[name];
-        if (validator) {
+        if (validator && hide[name] !== true) {
             if (validator instanceof Array) {
                 validator = validator[0];
             }
@@ -201,9 +202,10 @@ function useForm(configs, props, startActive) {
             });
         }
     }
-    function runCriterion(name, data) {
+    function runReadonly(name, data) {
+        // Only run readonly if field is visible
         var criterion = props.readonly[name];
-        if (criterion) {
+        if (criterion && hide[name] !== true) {
             if (criterion instanceof Array) {
                 criterion = criterion[0];
             }
@@ -222,7 +224,8 @@ function useForm(configs, props, startActive) {
             });
         }
     }
-    function runHideCriterion(name, data) {
+    // TODO : rerun validation and readonly for newly visible fields
+    function runHide(name, data) {
         var criterion = props.hide[name];
         if (criterion) {
             if (criterion instanceof Array) {
@@ -234,6 +237,12 @@ function useForm(configs, props, startActive) {
                     newHide[name] = result;
                     return newHide;
                 });
+                // Since we don't run validation on hidden fields, we will 
+                // rerun validation if the result changes to false from true
+                if (result === false && hide[name] === true) {
+                    runValidation(name, data);
+                    runReadonly(name, data);
+                }
             }).catch(function (_reason) {
                 setHide(function (oldHide) {
                     var newHide = Object.assign({}, oldHide);
@@ -247,7 +256,7 @@ function useForm(configs, props, startActive) {
         var deps = readonlyDeps[name];
         if (deps !== undefined) {
             deps.forEach(function (dep) {
-                runCriterion(dep, data);
+                runReadonly(dep, data);
             });
         }
     }
@@ -263,7 +272,7 @@ function useForm(configs, props, startActive) {
         var deps = hideDeps[name];
         if (deps !== undefined) {
             deps.forEach(function (dep) {
-                runHideCriterion(dep, data);
+                runHide(dep, data);
             });
         }
     }
@@ -319,8 +328,8 @@ function useForm(configs, props, startActive) {
         if (active) {
             configs.forEach(function (config) {
                 runValidation(config.name, data);
-                runCriterion(config.name, data);
-                runHideCriterion(config.name, data);
+                runReadonly(config.name, data);
+                runHide(config.name, data);
             });
         }
     }
