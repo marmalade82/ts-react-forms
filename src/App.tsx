@@ -83,7 +83,8 @@ function App() {
             hide={{
               option: async (data) => {
                 return hide;
-              }
+              },
+              name: async (data) => hide,
             }}
           ></TestForm>
           <button

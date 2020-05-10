@@ -75,13 +75,13 @@ function getDefault(input: keyof Input) {
 
 export type ValidationResult = ["ok", string] | ["error", any]
 
-type Validator<Data> =
+export type CheckValid<Data> =
     (data: Data) => Promise<ValidationResult>;
 
-type Criterion<Data> = 
+export type CheckReadonly<Data> = 
     (data: Data) => Promise<boolean>;
 
-type HideCriterion<Data> = 
+export type CheckHide<Data> = 
     (data: Data) => Promise<boolean>;
 
 
@@ -109,9 +109,9 @@ type UserConfig<Data, L extends keyof Data> = {
  * @handle is used to provide functions so for the caller to directly manipulate the internals
  */
 type FormProps<Data> = {
-    validation: Record<string, [Validator<Data>, string[]] | Validator<Data>>;
-    readonly: Record<string, [Criterion<Data>, string[]] | Criterion<Data>>;
-    hide: Record<string, [HideCriterion<Data>, string[]] | HideCriterion<Data>>
+    validation: Record<string, [CheckValid<Data>, string[]] | CheckValid<Data>>;
+    readonly: Record<string, [CheckReadonly<Data>, string[]] | CheckReadonly<Data>>;
+    hide: Record<string, [CheckHide<Data>, string[]] | CheckHide<Data>>
     choices: Record<string, any[] | undefined>;
     handle: any;
     props?: Record<string, any>
@@ -277,8 +277,8 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
             newData[name] = value;
 
             runValidation(name, newData);
-            runCriterion(name, newData);
-            runHideCriterion(name, newData);
+            runReadonly(name, newData);
+            runHide(name, newData);
             runReadonlyDeps(name, newData);
             runValidDeps(name, newData);
             runHideDeps(name, newData);
@@ -296,8 +296,9 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
     }
 
     function runValidation(name: string, data: any) {
+        // Only run validation logic if field is visible.
         let validator = props.validation[name]
-        if(validator) {
+        if(validator && hide[name] !== true) {
             if(validator instanceof Array) {
                 validator = validator[0];
             }
@@ -317,9 +318,10 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         }
     }
 
-    function runCriterion(name: string, data: any) {
+    function runReadonly(name: string, data: any) {
+        // Only run readonly if field is visible
         let criterion = props.readonly[name];
-        if(criterion) {
+        if(criterion && hide[name] !== true) {
             if(criterion instanceof Array) {
                 criterion = criterion[0];
             }
@@ -339,7 +341,9 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         }
     }
 
-    function runHideCriterion(name: string, data: any) {
+    // TODO : rerun validation and readonly for newly visible fields
+
+    function runHide(name: string, data: any) {
         let criterion = props.hide[name];
         if(criterion) {
             if(criterion instanceof Array) {
@@ -351,6 +355,13 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
                     newHide[name] = result;
                     return newHide;
                 })
+
+                // Since we don't run validation on hidden fields, we will 
+                // rerun validation if the result changes to false from true
+                if(result === false && hide[name] === true) {
+                    runValidation(name, data);
+                    runReadonly(name, data);
+                }
             }).catch((_reason) => {
                 setHide((oldHide) => {
                     let newHide = Object.assign({}, oldHide);
@@ -365,7 +376,7 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         const deps = readonlyDeps[name];
         if(deps !== undefined) {
             deps.forEach((dep) => {
-                runCriterion(dep, data);
+                runReadonly(dep, data);
             })
         }
     }
@@ -383,7 +394,7 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         const deps = hideDeps[name];
         if(deps !== undefined) {
             deps.forEach((dep) => {
-                runHideCriterion(dep, data);
+                runHide(dep, data);
             })
         }
     }
@@ -447,8 +458,8 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         if(active) {
             configs.forEach((config: any) => {
                 runValidation(config.name as string, data);
-                runCriterion(config.name as string, data);
-                runHideCriterion(config.name as string, data);
+                runReadonly(config.name as string, data);
+                runHide(config.name as string, data);
             })
         }
     }
