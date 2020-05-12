@@ -72,10 +72,21 @@ declare type Opts = {
     startActive?: boolean;
     name?: string;
 };
-export declare const Form: {
+declare type ReactForm<Data> = React.Component<Omit<FormProps<Data>, "handle">>;
+interface FormMethods<Data> {
+    getForm: () => Data;
+    setForm: (data: Data) => void;
+    getErrors: () => string[];
+    isFormValid: () => boolean;
+    setActive: (flag: boolean) => void;
+    getActive: () => boolean;
+    refresh: () => void;
+}
+export declare type FormHandle<Data> = ReactForm<Data> & FormMethods<Data>;
+declare const Form: {
     /**
      * Returns a function that, given the correct input, will generate the form.
      */
-    install: <TextProps extends Props<string>, NumberProps extends Props<number>, ChoiceProps extends Props<string>, DateProps extends Props<Date>>(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps> & OtherFormInputs) => <Data>(config: (Config<"number" | "text" | "choice" | "date" | "multi_text" | "time", Data, keyof Data> | UserConfig<Data, keyof Data>)[], opts?: Opts | undefined) => (props: FormProps<Data>) => JSX.Element;
+    install: <TextProps extends Props<string>, NumberProps extends Props<number>, ChoiceProps extends Props<string>, DateProps extends Props<Date>>(input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps> & OtherFormInputs) => <Data>(config: (Config<"number" | "text" | "choice" | "date" | "multi_text" | "time", Data, keyof Data> | UserConfig<Data, keyof Data>)[], opts?: Opts | undefined) => new (props: Pick<FormProps<Data>, "validation" | "readonly" | "hide" | "choices" | "props">) => ReactForm<Data>;
 };
 export default Form;

@@ -1,4 +1,17 @@
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var __assign = (this && this.__assign) || function () {
     __assign = Object.assign || function(t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
@@ -41,7 +54,7 @@ function getDefault(input) {
         }
     }
 }
-exports.Form = {
+var Form = {
     /**
      * Returns a function that, given the correct input, will generate the form.
      */
@@ -49,14 +62,47 @@ exports.Form = {
         return function make(config, opts) {
             var startActive = opts ? (opts.startActive === undefined ? true : opts.startActive) : true;
             var name = opts ? (opts.name === undefined ? "form" : opts.name) : "form";
-            return function Form(props) {
+            var F = function Form(props) {
                 var hooks = useForm(config, props, startActive);
                 return (react_1.default.createElement(react_1.default.Fragment, null, renderConfig(config, input, hooks, props, name)));
             };
+            return /** @class */ (function (_super) {
+                __extends(Form, _super);
+                function Form() {
+                    var _this = _super !== null && _super.apply(this, arguments) || this;
+                    _this.handle = {};
+                    _this.render = function () {
+                        return (react_1.default.createElement(F, __assign({}, _this.props, { handle: _this.handle })));
+                    };
+                    _this.getForm = function () {
+                        return _this.handle.getForm();
+                    };
+                    _this.setForm = function (data) {
+                        return _this.handle.setForm(data);
+                    };
+                    _this.getErrors = function () {
+                        return _this.handle.getErrors();
+                    };
+                    _this.isFormValid = function () {
+                        return _this.handle.isFormValid();
+                    };
+                    _this.setActive = function (flag) {
+                        return _this.handle.setActive(flag);
+                    };
+                    _this.getActive = function () {
+                        return _this.handle.getActive();
+                    };
+                    _this.refresh = function () {
+                        return _this.handle.refresh();
+                    };
+                    return _this;
+                }
+                return Form;
+            }(react_1.default.Component));
         };
     }
 };
-exports.default = exports.Form;
+exports.default = Form;
 function useForm(configs, props, startActive) {
     var data_ = (configs).reduce(function (acc, config) {
         acc[config.name] = config.default !== undefined ? config.default : getDefault(config.type);
@@ -147,6 +193,7 @@ function useForm(configs, props, startActive) {
         }
     }, [hidden]);
     // We always set the handle to have the latest functions for fetching and setting form data.
+    // We also expose the functions as a ref so that we have the benefit of typing
     initializeHandle(props);
     var _valid = function (name) {
         return active && valid[name] !== undefined ? valid[name] : ["ok", ""];
