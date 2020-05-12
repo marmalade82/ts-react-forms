@@ -122,7 +122,28 @@ type Opts = {
     name?: string
 }
 
-export const Form = {
+type ReactForm<Data> = React.Component<Omit<FormProps<Data>, "handle">>
+
+interface FormMethods<Data> {
+
+    getForm : () => Data;
+
+    setForm : (data: Data) => void;
+
+    getErrors : () => string[];
+
+    isFormValid : () => boolean;
+
+    setActive : (flag: boolean) => void;
+
+    getActive : () => boolean;
+
+    refresh : () => void
+}
+
+export type FormHandle<Data> = ReactForm<Data> & FormMethods<Data>;
+
+const Form = {
     /**
      * Returns a function that, given the correct input, will generate the form.
      */
@@ -132,17 +153,61 @@ export const Form = {
                       DateProps extends Props<Date>,
                       > (input: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps> & OtherFormInputs) {
 
-        return function make<Data>(config: (Config<keyof Input, Data, keyof Data> | UserConfig<Data, keyof Data>)[], opts?: Opts) {
+        return function make<Data>(
+                        config: (Config<keyof Input, Data, keyof Data> | UserConfig<Data, keyof Data>)[], 
+                        opts?: Opts)
+                            : new (props: Omit<FormProps<Data>, "handle">) => ReactForm<Data> {
             const startActive: boolean = opts ? (opts.startActive === undefined ? true : opts.startActive) : true;
             const name: string = opts ? (opts.name === undefined ? "form" : opts.name) : "form";
 
-            return function Form(props: FormProps<Data>) {
+            const F = function Form(props: FormProps<Data>) {
                 const hooks = useForm(config, props, startActive);
                 return (
                     <React.Fragment>
                         {renderConfig(config, input, hooks, props, name)}
                     </React.Fragment>
                 );
+            }
+
+            return class Form extends React.Component< Omit<FormProps<Data>, "handle"> > implements FormHandle<Data> {
+                handle: any = {};
+
+                render = () => {
+                    return (
+                        <F
+                            {...this.props}
+                            handle={this.handle}
+                        ></F>
+                    );
+                }
+
+                getForm = (): Data => {
+                    return this.handle.getForm();
+                }
+
+                setForm = (data: Data): void => {
+                    return this.handle.setForm(data)
+                }
+
+                getErrors = (): string[] => {
+                    return this.handle.getErrors();
+                }
+
+                isFormValid = (): boolean => {
+                    return this.handle.isFormValid();
+                }
+
+                setActive = (flag: boolean): void => {
+                    return this.handle.setActive(flag);
+                }
+
+                getActive = (): boolean => {
+                    return this.handle.getActive();
+                }
+
+                refresh = (): void => {
+                    return this.handle.refresh();
+                }
             }
         }
     }
@@ -253,6 +318,7 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
     }, [hidden])
 
     // We always set the handle to have the latest functions for fetching and setting form data.
+    // We also expose the functions as a ref so that we have the benefit of typing
     initializeHandle(props);
 
     const _valid = (name: string): ValidationResult => {

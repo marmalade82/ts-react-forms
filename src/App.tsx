@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import Form from "./lib/Form";
+import Form, { FormHandle } from "./lib/Form";
 import TextInput from "./inputs/TextInput";
 import NumberInput from './inputs/NumberInput';
 import DateInput from './inputs/DateInput';
@@ -48,7 +48,7 @@ const TestForm = makeForm<Data>([
 ], { name: "test", startActive: true } )
 
 function App() {
-  const [handle] = React.useState({} as any);
+  const handle: React.MutableRefObject<FormHandle<Data> | null> = React.useRef(null);
 
   const [validation] = React.useState( initialValidation as any)
 
@@ -60,7 +60,7 @@ function App() {
     >
       <div className="container">
           <TestForm
-            handle={handle}
+            ref={handle}
             choices={{
               "plus-one": [
                 {label: "Yes", value: "yes", key: "yes"},
@@ -94,7 +94,10 @@ function App() {
           >Click to hide/show the option field</button>
           <button
             onClick={() => {
-              handle.setActive(!handle.getActive());
+              if(handle.current !== null) {
+                handle.current.setActive(!handle.current.getActive())
+              }
+              //handle.setActive(!handle.getActive());
             }}
           >Click to enable/disable logic</button>
       </div>
