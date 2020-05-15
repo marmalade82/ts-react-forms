@@ -128,11 +128,13 @@ function useForm(configs, props, startActive) {
     react_1.default.useEffect(function () {
         var readonlyDeps = {};
         if (criteria !== undefined) {
-            Object.keys(criteria).forEach(function (name) {
+            Object.keys(criteria).forEach(function (n) {
+                var name = n;
                 var criterion = criteria[name];
                 if (criterion instanceof Array) {
                     var triggers = criterion[1];
-                    triggers.forEach(function (trigger) {
+                    triggers.forEach(function (t) {
+                        var trigger = t;
                         if (readonlyDeps[trigger] === undefined) {
                             readonlyDeps[trigger] = [name];
                         }
@@ -151,11 +153,13 @@ function useForm(configs, props, startActive) {
     react_1.default.useEffect(function () {
         var validDeps = {};
         if (validations !== undefined) {
-            Object.keys(validations).forEach(function (name) {
+            Object.keys(validations).forEach(function (n) {
+                var name = n;
                 var validator = validations[name];
                 if (validator instanceof Array) {
                     var triggers = validator[1];
-                    triggers.forEach(function (trigger) {
+                    triggers.forEach(function (t) {
+                        var trigger = t;
                         if (validDeps[trigger] === undefined) {
                             validDeps[trigger] = [name];
                         }
@@ -174,11 +178,13 @@ function useForm(configs, props, startActive) {
     react_1.default.useEffect(function () {
         var hideDeps = {};
         if (hidden !== undefined) {
-            Object.keys(hidden).forEach(function (name) {
+            Object.keys(hidden).forEach(function (n) {
+                var name = n;
                 var hider = hidden[name];
                 if (hider instanceof Array) {
                     var triggers = hider[1];
-                    triggers.forEach(function (trigger) {
+                    triggers.forEach(function (t) {
+                        var trigger = t;
                         if (hideDeps[trigger] === undefined) {
                             hideDeps[trigger] = [name];
                         }
@@ -196,7 +202,7 @@ function useForm(configs, props, startActive) {
     // We also expose the functions as a ref so that we have the benefit of typing
     initializeHandle(props);
     var _valid = function (name) {
-        return active && valid[name] !== undefined ? valid[name] : ["ok", ""];
+        return active && (valid[name] !== undefined) ? valid[name] : ["ok", ""];
     };
     var _readonly = function (name) {
         return active && readonly[name] !== undefined ? readonly[name] : false;
@@ -374,9 +380,10 @@ function useForm(configs, props, startActive) {
     function refresh() {
         if (active) {
             configs.forEach(function (config) {
-                runValidation(config.name, data);
-                runReadonly(config.name, data);
-                runHide(config.name, data);
+                var name = config.name;
+                runValidation(name, data);
+                runReadonly(name, data);
+                runHide(name, data);
             });
         }
     }
@@ -452,14 +459,15 @@ function renderConfig(configs, inputs, hooks, props, name) {
     }
     function installProps(config, hooks, name) {
         var valid = hooks.valid, readonly = hooks.readonly, value = hooks.value, setValue = hooks.setValue;
+        var n = config.name;
         return {
             label: config.label,
-            value: value(config.name),
+            value: value(n),
             onChange: function (val) {
-                setValue(config.name, val);
+                setValue(n, val);
             },
-            valid: valid(config.name),
-            readonly: readonly(config.name),
+            valid: valid(n),
+            readonly: readonly(n),
             key: config.name,
             accessibilityLabel: name + "-" + config.name
         };

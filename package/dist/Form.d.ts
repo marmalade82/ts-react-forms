@@ -53,6 +53,21 @@ declare type UserConfig<Data, L extends keyof Data> = {
     default: Data[L];
     props?: Record<string, any>;
 };
+export declare type ValidationMap<Data> = {
+    [K in keyof Data]?: [CheckValid<Data>, string[]] | CheckValid<Data>;
+};
+export declare type ReadonlyMap<Data> = {
+    [K in keyof Data]?: [CheckReadonly<Data>, string[]] | CheckReadonly<Data>;
+};
+export declare type HideMap<Data> = {
+    [K in keyof Data]?: [CheckHide<Data>, string[]] | CheckHide<Data>;
+};
+export declare type ChoiceMap<Data> = {
+    [K in keyof Data]?: any[] | undefined;
+};
+export declare type PropsMap<Data> = {
+    [K in keyof Data]?: any;
+};
 /**
  * Some fields will require validation. Others will not.
  * Some fields will require being set to read-only. Others will not.
@@ -60,13 +75,13 @@ declare type UserConfig<Data, L extends keyof Data> = {
  *
  * @handle is used to provide functions so for the caller to directly manipulate the internals
  */
-declare type FormProps<Data> = {
-    validation: Record<string, [CheckValid<Data>, string[]] | CheckValid<Data>>;
-    readonly: Record<string, [CheckReadonly<Data>, string[]] | CheckReadonly<Data>>;
-    hide: Record<string, [CheckHide<Data>, string[]] | CheckHide<Data>>;
-    choices: Record<string, any[] | undefined>;
+export declare type FormProps<Data> = {
+    validation: ValidationMap<Data>;
+    readonly: ReadonlyMap<Data>;
+    hide: HideMap<Data>;
+    choices: ChoiceMap<Data>;
     handle: any;
-    props?: Record<string, any>;
+    props?: PropsMap<Data>;
 };
 declare type Opts = {
     startActive?: boolean;

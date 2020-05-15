@@ -1,6 +1,6 @@
 {
   "name": "@marmalade82/ts-react-forms",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "private": false,
   "description": "Form interface for React applications",
   "main": "Form.js",
