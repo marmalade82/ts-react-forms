@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import Form, { FormHandle } from "./lib/Form";
+import Form, { FormHandle, ValidationMap } from "./lib/Form";
 import TextInput from "./inputs/TextInput";
 import NumberInput from './inputs/NumberInput';
 import DateInput from './inputs/DateInput';
@@ -50,7 +50,7 @@ const TestForm = makeForm<Data>([
 function App() {
   const handle: React.MutableRefObject<FormHandle<Data> | null> = React.useRef(null);
 
-  const [validation] = React.useState( initialValidation as any)
+  const [validation] = React.useState( initialValidation )
 
   const [hide, setHide] = React.useState(false);
 
@@ -108,7 +108,7 @@ function App() {
 export default App;
 
 
-const initialValidation = {
+const initialValidation: ValidationMap<Data> = {
     name: async (data: any) => {
       if(data.name.length > 0) {
         return ["ok", ""]

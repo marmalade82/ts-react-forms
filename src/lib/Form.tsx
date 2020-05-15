@@ -101,6 +101,42 @@ type UserConfig<Data, L extends keyof Data> = {
     props?: Record<string, any>; // any additional props to pass to the input
 }
 
+export type ValidationMap<Data> = {
+    [K in keyof Data]?: [CheckValid<Data>, string[]] | CheckValid<Data>;
+}
+
+type Validation<Data> = {
+    [K in keyof Data]?: ValidationResult;
+}
+
+type TriggerMap<Data> = {
+    [K in keyof Data]?: (keyof Data)[]
+}
+
+export type ReadonlyMap<Data> = {
+    [K in keyof Data]?: [CheckReadonly<Data>, string[]] | CheckReadonly<Data>;
+}
+
+type Readonly<Data> = {
+    [K in keyof Data]?: boolean;
+}
+
+export type HideMap<Data> = {
+    [K in keyof Data]?: [CheckHide<Data>, string[]] | CheckHide<Data>;
+}
+
+type Hide<Data> = {
+    [K in keyof Data]?: boolean;
+}
+
+export type ChoiceMap<Data> = {
+    [K in keyof Data]?: any[] | undefined;
+}
+
+export type PropsMap<Data> = {
+    [K in keyof Data]?: any;
+}
+
 /**
  * Some fields will require validation. Others will not.
  * Some fields will require being set to read-only. Others will not.
@@ -108,13 +144,13 @@ type UserConfig<Data, L extends keyof Data> = {
  * 
  * @handle is used to provide functions so for the caller to directly manipulate the internals
  */
-type FormProps<Data> = {
-    validation: Record<string, [CheckValid<Data>, string[]] | CheckValid<Data>>;
-    readonly: Record<string, [CheckReadonly<Data>, string[]] | CheckReadonly<Data>>;
-    hide: Record<string, [CheckHide<Data>, string[]] | CheckHide<Data>>
-    choices: Record<string, any[] | undefined>;
+export type FormProps<Data> = {
+    validation: ValidationMap<Data>;
+    readonly: ReadonlyMap<Data>;
+    hide: HideMap<Data>;
+    choices: ChoiceMap<Data>
     handle: any;
-    props?: Record<string, any>
+    props?: PropsMap<Data>
 }
 
 type Opts = {
@@ -214,17 +250,20 @@ const Form = {
 }
 export default Form;
 
-type HookReturn = 
-    { valid: (name: string) => ValidationResult
-    , readonly: (name: string) => boolean
-    , hide: (name: string) => boolean
-    , value: (name: string) => any
-    , setValue: (name: string, value: any) => void
+type HookReturn<Data> = 
+    { valid: (name: keyof Data) => ValidationResult
+    , readonly: (name: keyof Data) => boolean
+    , hide: (name: keyof Data) => boolean
+    , value: (name: keyof Data) => any
+    , setValue: (name: keyof Data, value: any) => void
     };
 
-function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserConfig<Data, keyof Data>)[], props: FormProps<Data>, startActive?: boolean): HookReturn {
+function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserConfig<Data, keyof Data>)[], props: FormProps<Data>, startActive?: boolean)
+                : HookReturn<Data> {
 
-    const data_: Record<string, any> = (configs).reduce((acc, config) => {
+    const data_: {
+        [K in keyof Data]: any
+    } = (configs).reduce((acc, config) => {
         acc[config.name] = config.default !== undefined ? config.default : getDefault(config.type);
         return acc;
     }, {} as any);
@@ -232,9 +271,9 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
     const [refreshing, setRefreshing] = React.useState(true);
     const [active, setActive] = React.useState(startActive === undefined ? true: startActive);
     const [data, setData] = React.useState(data_);
-    const [valid, setValid ] = React.useState({} as Record<string, ValidationResult>);
-    const [readonly, setReadonly] = React.useState({} as Record<string, boolean>);
-    const [hide, setHide] = React.useState({} as Record<string, boolean>);
+    const [valid, setValid ] = React.useState({} as Validation<Data>);
+    const [readonly, setReadonly] = React.useState({} as Readonly<Data>);
+    const [hide, setHide] = React.useState({} as Hide<Data>);
 
 
     // eslint-disable-next-line
@@ -249,19 +288,21 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
     const {readonly: criteria, validation: validations, hide: hidden} = props;
 
     // Set up a field to re-check its readonly state if another field is changed.
-    const [readonlyDeps, setReadonlyDeps] = React.useState({} as Record<string, string[]>)
+    const [readonlyDeps, setReadonlyDeps] = React.useState({} as TriggerMap<Data>)
     React.useEffect(() => {
-        let readonlyDeps = {} as Record<string, string[]>
+        let readonlyDeps = {} as TriggerMap<Data>;
         if(criteria !== undefined) {
-            Object.keys(criteria).forEach((name) => {
+            Object.keys(criteria).forEach((n: any) => {
+                const name = n as keyof Data;
                 const criterion = criteria[name]
                 if(criterion instanceof Array) {
                     const triggers = criterion[1]
-                    triggers.forEach((trigger) => {
+                    triggers.forEach((t: any) => {
+                        const trigger = t as keyof Data;
                         if(readonlyDeps[trigger] === undefined) {
                             readonlyDeps[trigger] = [name];
                         } else {
-                            readonlyDeps[trigger].push(name);
+                            (readonlyDeps[trigger] as any).push(name);
                         }
                     })
                 }
@@ -272,19 +313,21 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
     }, [criteria])
     
     //Set up a field to re-check its validity if another field is changed
-    const [validDeps, setValidDeps] = React.useState({} as Record<string, string[]>);
+    const [validDeps, setValidDeps] = React.useState({} as TriggerMap<Data>);
     React.useEffect(() => {
-        let validDeps = {} as Record<string, string[]>;
+        let validDeps = {} as TriggerMap<Data>;
         if(validations !== undefined) {
-            Object.keys(validations).forEach((name) => {
+            Object.keys(validations).forEach((n: any) => {
+                const name = n as keyof Data;
                 const validator = validations[name];
                 if(validator instanceof Array) {
                     const triggers = validator[1];
-                    triggers.forEach((trigger) => {
+                    triggers.forEach((t) => {
+                        const trigger = t as keyof Data;
                         if(validDeps[trigger] === undefined) {
                             validDeps[trigger] = [name];
                         } else {
-                            validDeps[trigger].push(name)
+                            (validDeps[trigger] as any).push(name)
                         }
                     })
                 }
@@ -295,19 +338,21 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
     }, [validations])
 
     // Set up a field to re-check its visibility if another field is changed
-    const [hideDeps, setHideDeps] = React.useState({} as Record<string, string[]>);
+    const [hideDeps, setHideDeps] = React.useState({} as TriggerMap<Data>);
     React.useEffect(() => {
-        let hideDeps = {} as Record<string, string[]>;
+        let hideDeps = {} as TriggerMap<Data>;
         if(hidden !== undefined) {
-            Object.keys(hidden).forEach((name) => {
+            Object.keys(hidden).forEach((n: any) => {
+                const name = n as keyof Data
                 const hider = hidden[name];
                 if(hider instanceof Array) {
                     const triggers = hider[1];
-                    triggers.forEach((trigger) => {
+                    triggers.forEach((t: any) => {
+                        const trigger = t as keyof Data;
                         if(hideDeps[trigger] === undefined) {
                             hideDeps[trigger] = [name];
                         } else {
-                            hideDeps[trigger].push(name)
+                            (hideDeps[trigger] as any).push(name)
                         }
                     })
                 }
@@ -321,23 +366,23 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
     // We also expose the functions as a ref so that we have the benefit of typing
     initializeHandle(props);
 
-    const _valid = (name: string): ValidationResult => {
-        return active && valid[name] !== undefined ? valid[name] : ["ok", ""]
+    const _valid = (name: keyof Data): ValidationResult => {
+        return active && (valid[name] !== undefined) ? valid[name] as ValidationResult : ["ok", ""] as ValidationResult;
     }
 
-    const _readonly = (name: string): boolean => {
-        return active && readonly[name] !== undefined ? readonly[name] : false;
+    const _readonly = (name: keyof Data): boolean => {
+        return active && readonly[name] !== undefined ? readonly[name] as boolean : false;
     }
 
-    const _hide = (name: string): boolean => {
-        return active && hide[name] !== undefined ? hide[name] : false;
+    const _hide = (name: keyof Data): boolean => {
+        return active && hide[name] !== undefined ? hide[name] as boolean : false;
     }
 
-    const _value = (name: string) => {
+    const _value = (name: keyof Data) => {
         return data[name];
     }
 
-    const _setValue = (name: string, value: string) => {
+    const _setValue = (name: keyof Data, value: any) => {
         setData((oldData) => {
             let newData = Object.assign({}, oldData);
             newData[name] = value;
@@ -361,7 +406,7 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         setValue: _setValue
     }
 
-    function runValidation(name: string, data: any) {
+    function runValidation(name: keyof Data, data: any) {
         // Only run validation logic if field is visible.
         let validator = props.validation[name]
         if(validator && hide[name] !== true) {
@@ -384,7 +429,7 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         }
     }
 
-    function runReadonly(name: string, data: any) {
+    function runReadonly(name: keyof Data, data: any) {
         // Only run readonly if field is visible
         let criterion = props.readonly[name];
         if(criterion && hide[name] !== true) {
@@ -409,7 +454,7 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
 
     // TODO : rerun validation and readonly for newly visible fields
 
-    function runHide(name: string, data: any) {
+    function runHide(name: keyof Data, data: any) {
         let criterion = props.hide[name];
         if(criterion) {
             if(criterion instanceof Array) {
@@ -438,7 +483,7 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         }
     }
 
-    function runReadonlyDeps(name: string, data: any) {
+    function runReadonlyDeps(name: keyof Data, data: any) {
         const deps = readonlyDeps[name];
         if(deps !== undefined) {
             deps.forEach((dep) => {
@@ -447,7 +492,7 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         }
     }
 
-    function runValidDeps(name: string, data: any) {
+    function runValidDeps(name: keyof Data, data: any) {
         const deps = validDeps[name];
         if(deps !== undefined) {
             deps.forEach((dep) => {
@@ -456,7 +501,7 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         }
     }
 
-    function runHideDeps(name: string, data: any) {
+    function runHideDeps(name: keyof Data, data: any) {
         const deps = hideDeps[name];
         if(deps !== undefined) {
             deps.forEach((dep) => {
@@ -480,13 +525,13 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         props.handle.setForm = (data: any) => {
             configs.forEach((config: any) => {
                 if(data[config.name] !== undefined) {
-                    _setValue(config.name as string, data[config.name]);
+                    _setValue(config.name as keyof Data, data[config.name]);
                 }
             })
         }
 
         props.handle.getErrors = () => {
-            return Object.values(valid).filter((result) => {
+            return (Object.values(valid) as ValidationResult[]).filter((result) => {
                 return result[0] === "error";
             }).map((result) => {
                 return result[1];
@@ -494,7 +539,7 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
         }
 
         props.handle.isFormValid = () => {
-            return Object.values(valid).reduce((acc, result) => {
+            return (Object.values(valid) as ValidationResult[]).reduce((acc, result) => {
                 if(acc) {
                     return result[0] === "ok";
                 }
@@ -523,9 +568,10 @@ function useForm<Data>(configs: (Config<keyof Input, Data, keyof Data> | UserCon
     function refresh() {
         if(active) {
             configs.forEach((config: any) => {
-                runValidation(config.name as string, data);
-                runReadonly(config.name as string, data);
-                runHide(config.name as string, data);
+                const name = config.name as keyof Data;
+                runValidation(name, data);
+                runReadonly(name, data);
+                runHide(name, data);
             })
         }
     }
@@ -538,18 +584,18 @@ function renderConfig<TextProps extends Props<string>,
                       Data
                       >
                                 (configs: (Config<keyof Input, Data, keyof Data> | UserConfig<Data, keyof Data>)[], inputs: FormInputs<TextProps, NumberProps, ChoiceProps, DateProps>,
-                                 hooks: HookReturn,
+                                 hooks: HookReturn<Data>,
                                  props: FormProps<Data>,
                                  name: string) {
     return configs.map((config) => {
-        let runtimeProps = props.props ? (props.props[config.name as string] ? props.props[config.name as string] : {}) : {};
+        let runtimeProps = props.props ? (props.props[config.name as keyof Data] ? props.props[config.name as keyof Data] : {}) : {};
         const doInstall = (component: any) => {
             return installed(component, config, hooks, name, runtimeProps);
         }
 
         const {hide} = hooks;
 
-        if(hide(config.name as string)) {
+        if(hide(config.name as keyof Data)) {
             return null;
         }
 
@@ -581,7 +627,7 @@ function renderConfig<TextProps extends Props<string>,
             case "choice": {
                 const Component = inputs.choice
                 if(Component) {
-                    const choices = props.choices[config.name as string];
+                    const choices = props.choices[config.name as keyof Data];
                     return (
                         <Component
                             {...installProps(config, hooks, name)}
@@ -623,7 +669,8 @@ function renderConfig<TextProps extends Props<string>,
         }
     })
 
-    function installed<K extends Props<any>, Data>(Component: InputComponent<K>, config: Config<any, Data, keyof Data>, hooks: HookReturn, formTitle: string, runtimeProps: any) {
+    function installed<K extends Props<any>, Data>(Component: InputComponent<K>, config: Config<any, Data, keyof Data>, 
+                        hooks: HookReturn<Data>, formTitle: string, runtimeProps: any) {
         return (
             <Component
                 {...installProps(config, hooks, formTitle)}
@@ -633,17 +680,17 @@ function renderConfig<TextProps extends Props<string>,
         )
     }
 
-    function installProps<Data>(config: Config<any, Data, keyof Data>, hooks: HookReturn, name: string) {
+    function installProps<Data>(config: Config<any, Data, keyof Data>, hooks: HookReturn<Data>, name: string) {
         const {valid, readonly, value, setValue} = hooks;
-
+        const n = config.name as keyof Data;
         return {
             label: config.label,
-            value: value(config.name as string),
+            value: value(n),
             onChange: (val: any) => {
-                setValue(config.name as string, val);
+                setValue(n, val);
             },
-            valid: valid(config.name as string),
-            readonly: readonly(config.name as string),
+            valid: valid(n),
+            readonly: readonly(n),
             key: config.name,
             accessibilityLabel: name + "-" + config.name
         }
